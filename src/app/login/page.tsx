@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +18,8 @@ import {
     Loader2, Search, BookOpen, Printer, Star, User, Info, 
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     LayoutDashboard, UserPlus, Bell, MousePointer2, ChevronRight,
-    TrendingUp, ShieldCheck, Heart, Sparkles, MapPin, Phone, Mail
+    TrendingUp, ShieldCheck, Heart, Sparkles, MapPin, Phone, Mail,
+    CalendarCheck, Trophy
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
@@ -471,7 +471,7 @@ export default function LoginPage() {
                             </DialogHeader>
 
                             <div className="p-8 space-y-8 bg-slate-50 overflow-y-auto max-h-[60vh]">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-2 gap-4">
                                     <Card className="p-4 text-center border-2 border-black/5 bg-white shadow-sm rounded-2xl">
                                         <p className="text-[9px] font-black text-muted-foreground uppercase mb-1">মোট নম্বর</p>
                                         <p className="text-2xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p>

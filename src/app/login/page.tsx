@@ -301,17 +301,12 @@ export default function LoginPage() {
                     }
                 });
 
-                // Fixed Percentage Calculation: (Passed SSC / SSC Participants)
-                // Criteria for passing: Grade is not 'F' and GPA > 0
                 const totalSscParticipants = sscSnap.size;
                 const passedCount = sscSnap.docs.filter(doc => {
                     const data = doc.data();
                     const grade = (data.grade || '').toString().trim().toUpperCase();
                     const gpa = Number(data.gpa) || 0;
-                    
-                    // In RECORD management, non-pass is 'F' or 'পায়নী' (for scholarship)
-                    // If grade is 'F' or GPA is 0, they failed
-                    return grade !== '' && grade !== 'F' && grade !== 'পায়নী' && gpa > 0;
+                    return grade !== '' && grade !== 'F' && gpa > 0;
                 }).length;
 
                 const passRatePercent = totalSscParticipants > 0 ? (passedCount / totalSscParticipants) * 100 : 0;
@@ -436,14 +431,14 @@ export default function LoginPage() {
             <main className="flex-1 flex flex-col lg:flex-row relative">
                 
                 {/* Left Side: Welcome & Stats */}
-                <section className="flex-1 p-4 sm:p-8 lg:p-12 flex flex-col justify-start pt-2 space-y-6 relative">
+                <section className="flex-1 p-4 sm:p-8 lg:p-12 flex flex-col justify-start pt-1 space-y-6 relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
                     </div>
 
                     <div className="space-y-1 relative z-10">
-                        <h2 className="text-lg sm:text-xl font-black leading-tight text-slate-900 tracking-tight">
+                        <h2 className="text-base sm:text-lg font-black leading-tight text-slate-900 tracking-tight">
                             সৃজনশীল শিক্ষায় <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
                         </h2>
                         <p className="text-[11px] sm:text-xs font-bold text-slate-600 max-w-2xl leading-relaxed">
@@ -489,7 +484,7 @@ export default function LoginPage() {
                     </div>
 
                     {/* Fixed Live Stats Board */}
-                    <div className="w-full pt-2 relative z-10">
+                    <div className="w-full pt-1 relative z-10">
                         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
                             <GalleryCard />
                             <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group h-full">

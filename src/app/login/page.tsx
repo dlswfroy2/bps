@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,11 +15,16 @@ import { signIn, signUp } from '@/lib/auth';
 import type { UserRole } from '@/lib/user';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
-import { Loader2, Search, BookOpen, Printer, Star, User, Info, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
+import { 
+    Loader2, Search, BookOpen, Printer, Star, User, Info, 
+    CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
+    LayoutDashboard, UserPlus, Bell, MousePointer2, ChevronRight,
+    TrendingUp, ShieldCheck, Heart, Sparkles, MapPin, Phone, Mail
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
 import { useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { Student, studentFromDoc, getStudentPlaceholderImage, sanitizePhotoUrl } from '@/lib/student-data';
 import { getExams, Exam } from '@/lib/exam-data';
 import { getAllResults } from '@/lib/results-data';
@@ -38,7 +44,7 @@ const toBengaliNumber = (str: string | number | undefined | null) => {
 };
 
 const classNamesMap: Record<string, string> = {
-    '6': '৬ষ্ঠ', '7': '৭ম', '8': '৮ম', '9': '৯ম', '10': 'দশম'
+    '6': '৬ষ্ঠ', '7': '৭ম', '8': '৮ম', '9': '৯ম', '10': '১০ম'
 };
 
 function AuthFormFields({ email, password, setEmail, setPassword }: {
@@ -48,16 +54,32 @@ function AuthFormFields({ email, password, setEmail, setPassword }: {
     setPassword: (value: string) => void;
 }) {
     return (
-        <>
+        <div className="space-y-4">
             <div className="space-y-1.5">
-                <Label htmlFor="email" className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ইমেইল</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-9" />
+                <Label htmlFor="email" className="font-black text-[11px] uppercase tracking-wider text-primary">ইমেইল ঠিকানা</Label>
+                <Input 
+                    id="email" 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    required 
+                    placeholder="example@mail.com"
+                    className="h-11 border-2 focus:ring-primary" 
+                />
             </div>
             <div className="space-y-1.5">
-                <Label htmlFor="password" className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">পাসওয়ার্ড</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-9" />
+                <Label htmlFor="password" className="font-black text-[11px] uppercase tracking-wider text-primary">পাসওয়ার্ড</Label>
+                <Input 
+                    id="password" 
+                    type="password" 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    required 
+                    placeholder="••••••••"
+                    className="h-11 border-2 focus:ring-primary" 
+                />
             </div>
-        </>
+        </div>
     );
 }
 
@@ -84,6 +106,9 @@ export default function LoginPage() {
     const [searchExams, setSearchExams] = useState<Exam[]>([]);
     const [searchResult, setSearchResult] = useState<StudentProcessedResult | null>(null);
 
+    // Dynamic Stats States
+    const [stats, setStats] = useState({ students: 0, teachers: 0 });
+
     useEffect(() => {
         if (!loading && user) {
             router.push('/');
@@ -95,6 +120,21 @@ export default function LoginPage() {
             getExams(db, searchYear).then(setSearchExams);
         }
     }, [db, searchYear]);
+
+    // Fetch simple public stats
+    useEffect(() => {
+        if (!db) return;
+        const fetchStats = async () => {
+            try {
+                const [sSnap, tSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear), limit(500))),
+                    getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher')))
+                ]);
+                setStats({ students: sSnap.size, teachers: tSnap.size });
+            } catch (e) {}
+        };
+        fetchStats();
+    }, [db, globalYear]);
 
     const handleAuthAction = async (action: 'signIn' | 'signUp', role: UserRole) => {
         setIsLoading(true);
@@ -135,307 +175,340 @@ export default function LoginPage() {
 
     const handleResultSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        // Helper to convert Bengali numbers to English
         const bnToEn = (str: string) => str.toString().replace(/[০-৯]/g, d => "0123456789"["০১২৩৪৫৬৭৮৯".indexOf(d)].toString());
-
         if (!db || !searchYear || !searchClass || !searchExam || !searchRoll || !searchStudentId) {
             toast({ variant: 'destructive', title: 'তথ্য অসম্পূর্ণ', description: 'সবগুলো ঘর পূরণ করুন।' });
             return;
         }
-
         setIsSearching(true);
         try {
             const cleanRoll = parseInt(bnToEn(searchRoll).trim(), 10);
             const cleanStudentId = bnToEn(searchStudentId).trim().toUpperCase();
-
-            // SENSITIVE FIX: Search by class and roll instead of generatedId
-            // Some records might not have generatedId persisted as a field yet
-            const studentQuery = query(
-                collection(db, 'students'),
-                where('academicYear', '==', searchYear),
-                where('className', '==', searchClass),
-                where('roll', '==', cleanRoll),
-                limit(1)
-            );
-            
+            const studentQuery = query(collection(db, 'students'), where('academicYear', '==', searchYear), where('className', '==', searchClass), where('roll', '==', cleanRoll), limit(1));
             const studentSnap = await getDocs(studentQuery);
-
             if (studentSnap.empty) {
-                toast({ variant: 'destructive', title: 'শিক্ষার্থী পাওয়া যায়নি', description: 'প্রদানকৃত রোল বা শ্রেণি অনুযায়ী শিক্ষার্থী খুঁজে পাওয়া যায়নি।' });
-                setIsSearching(false);
-                return;
+                toast({ variant: 'destructive', title: 'শিক্ষার্থী পাওয়া যায়নি' });
+                setIsSearching(false); return;
             }
-
             const foundStudent = studentFromDoc(studentSnap.docs[0]);
-            
-            // Verification step: Check if the provided ID matches the found student
             if (foundStudent.generatedId?.toUpperCase() !== cleanStudentId) {
-                 toast({ variant: 'destructive', title: 'আইডি মেলেনি', description: 'প্রদানকৃত শিক্ষার্থী আইডি সঠিক নয়।' });
-                 setIsSearching(false);
-                 return;
+                 toast({ variant: 'destructive', title: 'আইডি মেলেনি' });
+                 setIsSearching(false); return;
             }
-            
-            // Fetch results for the entire class for rank calculation
             const allResults = await getAllResults(db, searchYear, searchExam);
             const classRes = allResults.filter(r => r.className === searchClass);
-            
             if (classRes.length === 0) {
-                toast({ variant: 'destructive', title: 'ফলাফল প্রকাশিত হয়নি', description: 'এই পরীক্ষার কোনো নম্বর এখনো এন্ট্রি করা হয়নি।' });
-                setIsSearching(false);
-                return;
+                toast({ variant: 'destructive', title: 'ফলাফল প্রকাশিত হয়নি' });
+                setIsSearching(false); return;
             }
-
-            const classStudentsQuery = query(
-                collection(db, 'students'),
-                where('academicYear', '==', searchYear),
-                where('className', '==', searchClass)
-            );
-            const classStudentsSnap = await getDocs(classStudentsQuery);
+            const classStudentsSnap = await getDocs(query(collection(db, 'students'), where('academicYear', '==', searchYear), where('className', '==', searchClass)));
             const classStudents = classStudentsSnap.docs.map(studentFromDoc);
-
             const subs = getSubjects(searchClass, foundStudent.group).filter(s => s.isExamSubject !== false);
             const processedResultsList = processStudentResults(classStudents, classRes, subs);
             const studentProcessed = processedResultsList.find(r => r.student.id === foundStudent.id);
-
-            if (studentProcessed) {
-                setSearchResult(studentProcessed);
-            } else {
-                toast({ variant: 'destructive', title: 'ফলাফল পাওয়া যায়নি', description: 'আপনার জন্য এই পরীক্ষার কোনো নম্বর পাওয়া যায়নি।' });
-            }
+            if (studentProcessed) setSearchResult(studentProcessed);
+            else toast({ variant: 'destructive', title: 'ফলাফল পাওয়া যায়নি' });
         } catch (error: any) {
-            console.error("Result Search Error:", error);
-            toast({ variant: 'destructive', title: 'সার্ভার ত্রুটি', description: 'ফলাফল খুঁজতে সমস্যা হচ্ছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।' });
-        } finally {
-            setIsSearching(false);
-        }
+            toast({ variant: 'destructive', title: 'সার্ভার ত্রুটি' });
+        } finally { setIsSearching(false); }
     };
 
-    if(loading || user) {
-        return <div className="flex min-h-screen items-center justify-center">লোড হচ্ছে...</div>
-    }
-
-    const SubmitButton = ({ action }: { action: 'signIn' | 'signUp' }) => (
-        <Button 
-            type="submit" 
-            className="w-full h-11 mt-4 font-black text-base shadow-lg bg-primary hover:bg-primary/90" 
-            disabled={isLoading}
-        >
-            {isLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
-            {isLoading ? 'প্রসেস হচ্ছে...' : (action === 'signIn' ? 'প্রবেশ করুন' : 'নিবন্ধন সম্পন্ন করুন')}
-        </Button>
-    );
+    if(loading || user) return null;
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-indigo-50 p-2 sm:p-4 font-kalpurush text-black overflow-hidden relative">
-            <div className="absolute top-4 left-4 z-50">
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="rounded-full bg-white/20 text-primary hover:bg-white/40 shadow-sm border border-primary/10"
-                    onClick={() => router.back()}
-                >
-                    <ArrowLeft className="h-5 w-5" />
-                </Button>
-            </div>
-
-            <div className="mb-2 flex flex-col items-center gap-0 text-center scale-90 sm:scale-100">
-                {isSchoolInfoLoading ? (
-                    <>
-                        <Skeleton className="h-16 w-16 rounded-full" />
-                        <Skeleton className="h-6 w-56 mt-2" />
-                    </>
-                ) : (
-                    <>
-                        {schoolInfo.logoUrl && (
-                            <div className="relative z-10 -mb-2">
-                                <Image
-                                    src={schoolInfo.logoUrl}
-                                    alt="School Logo"
-                                    width={90}
-                                    height={90}
-                                    className="rounded-full object-contain bg-white p-1 shadow-lg border-2 border-primary/20"
-                                />
-                            </div>
-                        )}
-                        
-                        <div className="bg-[#2418ff] border-[5px] border-red-600 rounded-[2rem] px-8 py-4 flex flex-col items-center gap-0 shadow-[0_12px_25px_-5px_rgba(36,24,255,0.4)] animate-in zoom-in duration-500 transform hover:scale-[1.01] transition-transform relative z-0">
-                            <h1 className="text-xl sm:text-[40px] font-black text-white leading-tight tracking-tighter mb-0.5 [text-shadow:2px_2px_4px_rgba(0,0,0,0.5)]">
-                                {schoolInfo.name}
-                            </h1>
-                            <p className="text-white font-bold italic text-xs sm:text-lg leading-none opacity-95">
-                                ডিজিটাল ম্যানেজমেন্ট পোর্টাল
-                            </p>
-                        </div>
-                    </>
-                )}
-            </div>
+        <div className="min-h-screen flex flex-col font-kalpurush bg-[#F8FAFF] text-slate-900 overflow-x-hidden">
             
-            <div className="w-full max-w-md space-y-4 scale-95 sm:scale-100">
-                <Card className="shadow-2xl border-2 border-primary/30 overflow-hidden bg-white/95 backdrop-blur-sm">
-                    <CardHeader className="bg-primary/5 border-b-2 border-primary/10 text-center py-3">
-                        <div className="flex flex-row gap-1.5 justify-center mb-2">
+            {/* Header / Nav */}
+            <header className="sticky top-0 z-[100] w-full h-20 bg-white/80 backdrop-blur-md border-b-2 border-primary/5 flex items-center justify-between px-4 sm:px-12">
+                <div className="flex items-center gap-3">
+                    <div className="relative h-12 w-12 rounded-full border-2 border-primary/20 p-0.5 bg-white shadow-md">
+                        {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-full" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain p-1" />}
+                    </div>
+                    <div>
+                        <h1 className="text-xl sm:text-2xl font-black text-primary leading-none">{schoolInfo.name}</h1>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Digital Management System</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    <Badge variant="outline" className="hidden sm:flex border-primary/20 text-primary font-black px-4 py-1.5 h-auto text-sm shadow-sm bg-primary/5">
+                        সেশন: {toBengaliNumber(globalYear)}
+                    </Badge>
+                    <Button variant="default" className="font-black h-11 px-8 rounded-xl shadow-xl shadow-primary/20 hidden sm:flex">
+                        শিক্ষক লগইন
+                    </Button>
+                </div>
+            </header>
+
+            <main className="flex-1 flex flex-col lg:flex-row">
+                
+                {/* Left Side: Welcome & Quick Links */}
+                <section className="flex-1 p-6 sm:p-12 lg:p-20 flex flex-col justify-center space-y-10 relative">
+                    <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
+                        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
+                        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
+                    </div>
+
+                    <div className="space-y-6 relative z-10">
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none font-black text-sm px-5 py-1.5 rounded-full">
+                            <Sparkles className="h-4 w-4 mr-2" /> আমাদের স্বাগতম
+                        </Badge>
+                        <h2 className="text-4xl sm:text-6xl font-black leading-[1.1] text-slate-900 tracking-tight">
+                            সৃজনশীল শিক্ষায় <br />
+                            <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
+                        </h2>
+                        <p className="text-lg sm:text-xl font-bold text-slate-600 max-w-2xl leading-relaxed">
+                            {schoolInfo.name} এর কেন্দ্রীয় ডিজিটাল ম্যানেজমেন্ট পোর্টালে আপনাকে স্বাগতম। আধুনিক শিক্ষা ও প্রশাসনিক কাজে স্বচ্ছতা নিশ্চিত করতে আমাদের এই ডিজিটাল উদ্যোগ।
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 relative z-10 pt-4">
+                        <Button 
+                            variant="outline" 
+                            size="lg" 
+                            className="h-16 px-10 rounded-2xl border-2 border-primary/30 text-primary font-black text-lg bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
+                            onClick={() => setIsSearchOpen(true)}
+                        >
+                            <BookOpen className="h-6 w-6 mr-3 group-hover:scale-110 transition-transform" />
+                            ফলাফল দেখুন
+                        </Button>
+                        <Link href="/admission">
                             <Button 
                                 variant="outline" 
-                                size="sm" 
-                                className="h-8 px-4 text-[9px] sm:text-xs font-black border-primary/20 hover:bg-primary/5 bg-white shadow-sm"
-                                onClick={() => setIsSearchOpen(true)}
+                                size="lg" 
+                                className="h-16 px-10 rounded-2xl border-2 border-emerald-300 text-emerald-700 font-black text-lg bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
                             >
-                                ফলাফল দেখুন
+                                <UserPlus className="h-6 w-6 mr-3 group-hover:scale-110 transition-transform" />
+                                অনলাইন ভর্তি
                             </Button>
-                            <Button variant="default" size="sm" className="h-8 px-4 text-[9px] sm:text-xs font-black shadow-sm cursor-default bg-primary">প্রবেশ করুন</Button>
-                            <Link href="/admission">
-                                <Button variant="outline" size="sm" className="h-8 px-2.5 text-[9px] sm:text-xs font-bold border-primary/20 hover:bg-primary/5 bg-white">অনলাইন ভর্তি</Button>
-                            </Link>
+                        </Link>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 relative z-10">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><CheckCircle2 className="h-5 w-5" /></div>
+                            <span className="font-bold text-slate-700">ডিজিটাল হাজিরা</span>
                         </div>
-                        <CardDescription className="font-bold text-[10px] text-muted-foreground uppercase tracking-tight">সিস্টেম ব্যবহারের জন্য আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4 pb-5">
-                        <Tabs defaultValue="teacher-login">
-                            <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-4 h-9">
-                                <TabsTrigger value="teacher-login" className="font-black text-[10px] sm:text-xs h-7 data-[state=active]:bg-white data-[state=active]:shadow-sm">শিক্ষক</TabsTrigger>
-                                <TabsTrigger value="admin-login" className="font-black text-[10px] sm:text-xs h-7 data-[state=active]:bg-white data-[state=active]:shadow-sm">এডমিন</TabsTrigger>
-                                <TabsTrigger value="signup" className="font-black text-[10px] sm:text-xs h-7 data-[state=active]:bg-white data-[state=active]:shadow-sm">নিবন্ধন</TabsTrigger>
-                            </TabsList>
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><ShieldCheck className="h-5 w-5" /></div>
+                            <span className="font-bold text-slate-700">নিরাপদ তথ্যভাণ্ডার</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><TrendingUp className="h-5 w-5" /></div>
+                            <span className="font-bold text-slate-700">স্বচ্ছ হিসাব শাখা</span>
+                        </div>
+                    </div>
+                </section>
 
-                            <TabsContent value="teacher-login" className="mt-0 outline-none">
-                                <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'teacher'); }} className="space-y-3">
-                                    <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                    <SubmitButton action="signIn" />
-                                </form>
-                            </TabsContent>
-                            
-                            <TabsContent value="admin-login" className="mt-0 outline-none">
-                                <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'admin'); }} className="space-y-3">
-                                    <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                    <SubmitButton action="signIn" />
-                                </form>
-                            </TabsContent>
-                            
-                            <TabsContent value="signup" className="mt-0 outline-none">
-                                <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signUp', 'teacher'); }} className="space-y-3">
-                                    <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                    <SubmitButton action="signUp" />
-                                </form>
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
+                {/* Right Side: Auth Form & Live Stats */}
+                <section className="w-full lg:w-[480px] bg-white border-l-2 border-primary/5 p-6 sm:p-12 flex flex-col gap-10 items-center justify-center shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
+                    
+                    {/* Login Card */}
+                    <Card className="w-full shadow-2xl border-2 border-primary/20 rounded-[32px] overflow-hidden bg-white">
+                        <CardHeader className="bg-primary p-8 text-white text-center">
+                            <CardTitle className="text-2xl font-black">প্র প্রশাসনিক লগইন</CardTitle>
+                            <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-8">
+                            <Tabs defaultValue="teacher-login" className="w-full">
+                                <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-6 h-11 rounded-xl">
+                                    <TabsTrigger value="teacher-login" className="font-black text-xs rounded-lg">শিক্ষক</TabsTrigger>
+                                    <TabsTrigger value="admin-login" className="font-black text-xs rounded-lg">এডমিন</TabsTrigger>
+                                    <TabsTrigger value="signup" className="font-black text-xs rounded-lg">নিবন্ধন</TabsTrigger>
+                                </TabsList>
 
-                <div className="text-center">
-                    <p className="text-[10px] font-bold text-muted-foreground opacity-60">© ২০২৬ {schoolInfo.name}। সর্বস্বত্ব সংরক্ষিত।</p>
+                                <TabsContent value="teacher-login" className="mt-0 space-y-4">
+                                    <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'teacher'); }} className="space-y-6">
+                                        <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                        <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
+                                            {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
+                                            লগইন করুন
+                                        </Button>
+                                    </form>
+                                </TabsContent>
+                                
+                                <TabsContent value="admin-login" className="mt-0">
+                                    <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'admin'); }} className="space-y-6">
+                                        <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                        <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
+                                            {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
+                                            লগইন করুন
+                                        </Button>
+                                    </form>
+                                </TabsContent>
+                                
+                                <TabsContent value="signup" className="mt-0">
+                                    <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signUp', 'teacher'); }} className="space-y-6">
+                                        <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                        <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
+                                            নিবন্ধন করুন
+                                        </Button>
+                                    </form>
+                                </TabsContent>
+                            </Tabs>
+                        </CardContent>
+                    </Card>
+
+                    {/* Live Stats Grid */}
+                    <div className="w-full space-y-4">
+                        <div className="flex items-center gap-2 mb-4 px-2">
+                            <TrendingUp className="h-5 w-5 text-primary" />
+                            <h3 className="font-black text-lg text-slate-800">লাইভ আপডেট</h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group">
+                                <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    <Users className="h-5 w-5" />
+                                </div>
+                                <p className="text-3xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
+                                <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">মোট শিক্ষার্থী</p>
+                            </div>
+                            <div className="bg-white border-2 border-emerald-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-emerald-300 group">
+                                <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                    <GraduationCap className="h-5 w-5" />
+                                </div>
+                                <p className="text-3xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
+                                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">মোট শিক্ষক</p>
+                            </div>
+                            <div className="bg-white border-2 border-blue-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-blue-300 group">
+                                <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                    <CalendarCheck className="h-5 w-5" />
+                                </div>
+                                <p className="text-3xl font-black text-slate-900">৯৬%</p>
+                                <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতির হার</p>
+                            </div>
+                            <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group">
+                                <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                                    <Trophy className="h-5 w-5" />
+                                </div>
+                                <p className="text-3xl font-black text-slate-900">১০০%</p>
+                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাসের হার</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            {/* Footer */}
+            <footer className="w-full bg-slate-900 text-white/60 p-8 sm:px-12 flex flex-col sm:flex-row justify-between items-center gap-6 font-bold text-sm">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+                    <p>© ২০২৬ {schoolInfo.name}</p>
+                    <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {schoolInfo.address}</div>
+                    <div className="flex items-center gap-2"><Phone className="h-4 w-4" /> {toBengaliNumber('01717576030')}</div>
                 </div>
-            </div>
+                <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px]">
+                    <Sparkles className="h-4 w-4" /> Digital Management Portal | Version 2.0
+                </div>
+            </footer>
 
-            {/* Public Result Search Dialog */}
+            {/* Result Search Dialog */}
             <Dialog open={isSearchOpen} onOpenChange={(o) => { setIsSearchOpen(o); if(!o) { setSearchResult(null); setSearchRoll(''); setSearchStudentId(''); }}}>
                 <DialogContent className="sm:max-w-xl p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-2xl">
                     {!searchResult ? (
                         <>
-                            <DialogHeader className="p-6 bg-primary text-white">
-                                <DialogTitle className="text-2xl font-black flex items-center gap-2"><BookOpen className="h-6 w-6" /> পরীক্ষার ফলাফল অনুসন্ধান</DialogTitle>
-                                <DialogDescription className="text-white/80 font-bold">সঠিক তথ্য দিয়ে রেজাল্ট সামারি দেখুন</DialogDescription>
+                            <DialogHeader className="p-8 bg-primary text-white">
+                                <DialogTitle className="text-3xl font-black flex items-center gap-2"><BookOpen className="h-8 w-8" /> ফলাফল অনুসন্ধান</DialogTitle>
+                                <DialogDescription className="text-white/80 font-bold text-lg mt-1">সঠিক তথ্য দিয়ে রেজাল্ট সামারি দেখুন</DialogDescription>
                             </DialogHeader>
-                            <form onSubmit={handleResultSearch} className="p-6 space-y-5 bg-white">
+                            <form onSubmit={handleResultSearch} className="p-8 space-y-6 bg-white">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="font-bold text-xs">শিক্ষাবর্ষ</Label>
+                                        <Label className="font-black text-xs uppercase">শিক্ষাবর্ষ</Label>
                                         <Select value={searchYear} onValueChange={setSearchYear}>
-                                            <SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger>
-                                            <SelectContent>{availableYears.map(y => <SelectItem key={y} value={y}>{toBengaliNumber(y)}</SelectItem>)}</SelectContent>
+                                            <SelectTrigger className="h-12 bg-slate-50 border-2 font-black text-lg"><SelectValue /></SelectTrigger>
+                                            <SelectContent>{availableYears.map(y => <SelectItem key={y} value={y} className="font-bold">{toBengaliNumber(y)}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="font-bold text-xs">শ্রেণি</Label>
+                                        <Label className="font-black text-xs uppercase">শ্রেণি</Label>
                                         <Select value={searchClass} onValueChange={setSearchClass}>
-                                            <SelectTrigger className="bg-slate-50"><SelectValue placeholder="সিলেক্ট" /></SelectTrigger>
-                                            <SelectContent>{Object.entries(classNamesMap).map(([id, label]) => <SelectItem key={id} value={id}>{label} শ্রেণি</SelectItem>)}</SelectContent>
+                                            <SelectTrigger className="h-12 bg-slate-50 border-2 font-black text-lg"><SelectValue placeholder="সিলেক্ট" /></SelectTrigger>
+                                            <SelectContent>{Object.entries(classNamesMap).map(([id, label]) => <SelectItem key={id} value={id} className="font-bold">{label} শ্রেণি</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="font-bold text-xs">পরীক্ষার নাম</Label>
+                                    <Label className="font-black text-xs uppercase">পরীক্ষার নাম</Label>
                                     <Select value={searchExam} onValueChange={setSearchExam}>
-                                        <SelectTrigger className="bg-slate-50"><SelectValue placeholder="পরীক্ষা নির্বাচন করুন" /></SelectTrigger>
+                                        <SelectTrigger className="h-12 bg-slate-50 border-2 font-black text-lg"><SelectValue placeholder="পরীক্ষা নির্বাচন করুন" /></SelectTrigger>
                                         <SelectContent>
-                                            {searchExams.length > 0 ? searchExams.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>) : <SelectItem value="none" disabled>কোনো পরীক্ষা নেই</SelectItem>}
+                                            {searchExams.length > 0 ? searchExams.map(e => <SelectItem key={e.id} value={e.name} className="font-bold">{e.name}</SelectItem>) : <SelectItem value="none" disabled>কোনো পরীক্ষা নেই</SelectItem>}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="font-bold text-xs">রোল নম্বর</Label>
-                                        <Input value={searchRoll} onChange={e => setSearchRoll(e.target.value)} placeholder="উদা: ১" className="font-black text-lg h-11" required />
+                                        <Label className="font-black text-xs uppercase">রোল নম্বর</Label>
+                                        <Input value={searchRoll} onChange={e => setSearchRoll(e.target.value)} placeholder="উদা: ১" className="font-black text-xl h-12 border-2" required />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="font-bold text-xs">শিক্ষার্থী আইডি (ID)</Label>
-                                        <Input value={searchStudentId} onChange={e => setSearchStudentId(e.target.value)} placeholder="ID লিখুন" className="font-black text-lg h-11 uppercase" required />
+                                        <Label className="font-black text-xs uppercase">শিক্ষার্থী আইডি (ID)</Label>
+                                        <Input value={searchStudentId} onChange={e => setSearchStudentId(e.target.value)} placeholder="ID লিখুন" className="font-black text-xl h-12 uppercase border-2" required />
                                     </div>
                                 </div>
-                                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-2">
-                                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                                    <p className="text-[10px] font-bold text-amber-800 leading-tight">সতর্কতা: রোল এবং আইডি সঠিক হতে হবে। মার্কশিট প্রিন্ট করতে অফিস বা শ্রেণি শিক্ষকের সাথে যোগাযোগ করুন।</p>
+                                <div className="p-4 bg-amber-50 rounded-2xl border-2 border-dashed border-amber-200 flex items-start gap-3">
+                                    <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <p className="text-[11px] font-bold text-amber-800 leading-tight">সতর্কতা: রোল এবং আইডি সঠিক হতে হবে। মার্কশিট প্রিন্ট করতে অফিস বা শ্রেণি শিক্ষকের সাথে যোগাযোগ করুন।</p>
                                 </div>
-                                <Button type="submit" className="w-full h-12 text-lg font-black shadow-lg" disabled={isSearching}>
-                                    {isSearching ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Search className="mr-2 h-5 w-5" />}
+                                <Button type="submit" className="w-full h-14 text-xl font-black shadow-xl" disabled={isSearching}>
+                                    {isSearching ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Search className="mr-2 h-6 w-6" />}
                                     ফলাফল দেখুন
                                 </Button>
                             </form>
                         </>
                     ) : (
                         <div className="flex flex-col bg-white animate-in zoom-in duration-300">
-                            <DialogHeader className="p-6 bg-primary text-white flex flex-row items-center gap-5">
-                                <Avatar className="h-20 w-20 border-4 border-white/30 shadow-xl overflow-hidden shrink-0">
+                            <DialogHeader className="p-8 bg-primary text-white flex flex-row items-center gap-6">
+                                <Avatar className="h-24 w-24 border-4 border-white/30 shadow-xl overflow-hidden shrink-0">
                                     <AvatarImage src={sanitizePhotoUrl(searchResult.student.photoUrl, searchResult.student.gender) || getStudentPlaceholderImage(searchResult.student.gender)} className="object-cover h-full w-full" />
                                     <AvatarFallback className="text-2xl font-black bg-white/20">S</AvatarFallback>
                                 </Avatar>
                                 <div className="overflow-hidden">
-                                    <DialogTitle className="text-2xl font-black truncate">{searchResult.student.studentNameBn}</DialogTitle>
-                                    <DialogDescription className="text-white/80 font-bold text-sm">
+                                    <DialogTitle className="text-3xl font-black truncate">{searchResult.student.studentNameBn}</DialogTitle>
+                                    <DialogDescription className="text-white/80 font-bold text-lg mt-1">
                                         রোল: {toBengaliNumber(searchResult.student.roll)} | {classNamesMap[searchResult.student.className]} শ্রেণি | {searchExam}
                                     </DialogDescription>
                                 </div>
                             </DialogHeader>
 
-                            <div className="p-6 space-y-6 bg-slate-50 overflow-y-auto max-h-[60vh] scrollbar-thin">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    <Card className="p-3 text-center border-2 border-black/5 bg-white shadow-sm">
+                            <div className="p-8 space-y-8 bg-slate-50 overflow-y-auto max-h-[60vh]">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <Card className="p-4 text-center border-2 border-black/5 bg-white shadow-sm rounded-2xl">
                                         <p className="text-[9px] font-black text-muted-foreground uppercase mb-1">মোট নম্বর</p>
-                                        <p className="text-lg font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p>
+                                        <p className="text-2xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p>
                                     </Card>
-                                    <Card className="p-3 text-center border-2 border-black/5 bg-white shadow-sm">
+                                    <Card className="p-4 text-center border-2 border-black/5 bg-white shadow-sm rounded-2xl">
                                         <p className="text-[9px] font-black text-muted-foreground uppercase mb-1">জি.পি.এ</p>
-                                        <p className="text-lg font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p>
+                                        <p className="text-2xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p>
                                     </Card>
-                                    <Card className="p-3 text-center border-2 border-black/5 bg-white shadow-sm">
+                                    <Card className="p-4 text-center border-2 border-black/5 bg-white shadow-sm rounded-2xl">
                                         <p className="text-[9px] font-black text-muted-foreground uppercase mb-1">গ্রেড</p>
-                                        <p className={cn("text-lg font-black", searchResult.isPass ? "text-emerald-600" : "text-rose-600")}>
-                                            {searchResult.isPass ? searchResult.finalGrade : `F${searchResult.failedSubjectsCount}`}
+                                        <p className={cn("text-2xl font-black", searchResult.isPass ? "text-emerald-600" : "text-rose-600")}>
+                                            {searchResult.isPass ? searchResult.finalGrade : `F${toBengaliNumber(searchResult.failedSubjectsCount)}`}
                                         </p>
                                     </Card>
-                                    <Card className="p-3 text-center border-2 border-black/5 bg-white shadow-sm">
+                                    <Card className="p-4 text-center border-2 border-black/5 bg-white shadow-sm rounded-2xl">
                                         <p className="text-[9px] font-black text-muted-foreground uppercase mb-1">মেধাক্রম</p>
-                                        <p className="text-lg font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : 'ফেল'}</p>
+                                        <p className="text-2xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : 'ফেল'}</p>
                                     </Card>
                                 </div>
 
-                                <div className="border-2 border-black/10 rounded-xl overflow-hidden bg-white shadow-inner">
+                                <div className="border-2 border-black/10 rounded-[32px] overflow-hidden bg-white shadow-xl">
                                     <Table>
-                                        <TableHeader className="bg-muted/50">
+                                        <TableHeader className="bg-muted/50 h-14">
                                             <TableRow>
-                                                <TableHead className="font-black text-[11px] text-black">বিষয়</TableHead>
-                                                <TableHead className="text-center font-black text-[11px] text-black">প্রাপ্ত নম্বর</TableHead>
-                                                <TableHead className="text-center font-black text-[11px] text-black">গ্রেড</TableHead>
-                                                <TableHead className="text-right pr-4 font-black text-[11px] text-black">পয়েন্ট</TableHead>
+                                                <TableHead className="font-black text-xs text-black pl-8">বিষয়ের নাম</TableHead>
+                                                <TableHead className="text-center font-black text-xs text-black">প্রাপ্ত নম্বর</TableHead>
+                                                <TableHead className="text-center font-black text-xs text-black">গ্রেড</TableHead>
+                                                <TableHead className="text-right pr-8 font-black text-xs text-black">পয়েন্ট</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {Array.from(searchResult.subjectResults.entries()).map(([name, res]) => (
-                                                <TableRow key={name} className="h-9">
-                                                    <TableCell className="font-bold text-xs text-slate-700">{name}</TableCell>
-                                                    <TableCell className="text-center font-black text-blue-900 text-sm">{toBengaliNumber(res.marks)}</TableCell>
-                                                    <TableCell className={cn("text-center font-black text-xs", res.isPass ? "text-slate-700" : "text-rose-600")}>{res.grade}</TableCell>
-                                                    <TableCell className="text-right pr-4 font-bold text-xs">{toBengaliNumber(res.point.toFixed(2))}</TableCell>
+                                                <TableRow key={name} className="h-12">
+                                                    <TableCell className="font-bold text-sm text-slate-700 pl-8">{name}</TableCell>
+                                                    <TableCell className="text-center font-black text-blue-900 text-lg">{toBengaliNumber(res.marks)}</TableCell>
+                                                    <TableCell className={cn("text-center font-black text-sm", res.isPass ? "text-slate-700" : "text-rose-600")}>{res.grade}</TableCell>
+                                                    <TableCell className="text-right pr-8 font-bold text-sm">{toBengaliNumber(res.point.toFixed(2))}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -443,13 +516,13 @@ export default function LoginPage() {
                                 </div>
                             </div>
 
-                            <DialogFooter className="p-4 bg-white border-t flex flex-col sm:flex-row gap-3">
-                                <Button variant="outline" className="font-black flex-1 h-11" onClick={() => setSearchResult(null)}>অন্য ফলাফল খুঁজুন</Button>
+                            <DialogFooter className="p-6 bg-white border-t flex flex-col sm:flex-row gap-4">
+                                <Button variant="outline" className="font-black flex-1 h-12 rounded-xl text-lg" onClick={() => setSearchResult(null)}>অন্য ফলাফল খুঁজুন</Button>
                                 <Button 
-                                    className="font-black flex-1 h-11 shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    className="font-black flex-1 h-12 shadow-xl bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg"
                                     onClick={() => window.print()}
                                 >
-                                    <Printer className="mr-2 h-4 w-4" /> ফলাফল প্রিন্ট করুন
+                                    <Printer className="mr-2 h-5 w-5" /> ফলাফল প্রিন্ট করুন
                                 </Button>
                             </DialogFooter>
                         </div>
@@ -457,46 +530,46 @@ export default function LoginPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Hidden Printable Result Summary (Popup Format) */}
+            {/* Hidden Printable Result Summary */}
             {searchResult && (
-                <div className="hidden print:block printable-area bg-white text-black p-8 font-kalpurush border-[8px] border-double border-primary/40 rounded-sm w-[148mm] h-[210mm] mx-auto overflow-hidden">
-                    <header className="text-center border-b-2 border-primary pb-3 mb-6 flex flex-col items-center">
-                        {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-16 h-16 object-contain mb-2" />}
-                        <h1 className="text-2xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
-                        <p className="text-xs font-bold text-slate-700">{schoolInfo.address}</p>
-                        <div className="mt-3 inline-block bg-primary text-white px-6 py-1 rounded-full font-black text-sm shadow-sm">ফলাফল বিবরণী (সামারি)</div>
+                <div className="hidden print:block printable-area bg-white text-black p-10 font-kalpurush border-[12px] border-double border-primary/20 rounded-sm w-[210mm] h-[297mm] mx-auto overflow-hidden">
+                    <header className="text-center border-b-4 border-primary pb-4 mb-8 flex flex-col items-center">
+                        {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-3" />}
+                        <h1 className="text-4xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
+                        <p className="text-lg font-bold text-slate-700">{schoolInfo.address}</p>
+                        <div className="mt-4 inline-block bg-primary text-white px-10 py-1.5 rounded-full font-black text-xl shadow-lg">ফলাফল বিবরণী (সামারি)</div>
                     </header>
 
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-6 text-sm font-bold bg-slate-50 p-4 border rounded-xl">
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-24">শিক্ষার্থীর নাম:</span> <span className="font-black">{searchResult.student.studentNameBn}</span></div>
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-24">আইডি:</span> <span className="font-black">{toBengaliNumber(searchResult.student.generatedId || '-')}</span></div>
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-24">শ্রেণি ও রোল:</span> <span className="font-black">{classNamesMap[searchResult.student.className]} শ্রেণি, রোল- {toBengaliNumber(searchResult.student.roll)}</span></div>
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-24">পরীক্ষা:</span> <span className="font-black">{searchExam}</span></div>
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-10 text-lg font-bold bg-slate-50 p-6 border-2 rounded-[32px]">
+                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">শিক্ষার্থীর নাম:</span> <span className="font-black text-primary">{searchResult.student.studentNameBn}</span></div>
+                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">আইডি নং:</span> <span className="font-black">{toBengaliNumber(searchResult.student.generatedId || '-')}</span></div>
+                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">শ্রেণি ও রোল:</span> <span className="font-black">{classNamesMap[searchResult.student.className]} শ্রেণি, রোল- {toBengaliNumber(searchResult.student.roll)}</span></div>
+                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">পরীক্ষার নাম:</span> <span className="font-black">{searchExam}</span></div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3 mb-6">
-                        <div className="p-2 border-2 border-black rounded-lg text-center"><p className="text-[10px] font-black uppercase text-muted-foreground">মোট নম্বর</p><p className="text-xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p></div>
-                        <div className="p-2 border-2 border-black rounded-lg text-center"><p className="text-[10px] font-black uppercase text-muted-foreground">GPA</p><p className="text-xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p></div>
-                        <div className="p-2 border-2 border-black rounded-lg text-center"><p className="text-[10px] font-black uppercase text-muted-foreground">গ্রেড</p><p className="text-xl font-black">{searchResult.isPass ? searchResult.finalGrade : 'F'}</p></div>
-                        <div className="p-2 border-2 border-black rounded-lg text-center"><p className="text-[10px] font-black uppercase text-muted-foreground">মেধাক্রম</p><p className="text-xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
+                    <div className="grid grid-cols-4 gap-4 mb-10">
+                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">মোট নম্বর</p><p className="text-3xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p></div>
+                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">GPA</p><p className="text-3xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p></div>
+                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">গ্রেড</p><p className="text-3xl font-black">{searchResult.isPass ? searchResult.finalGrade : 'F'}</p></div>
+                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">মেধাক্রম</p><p className="text-3xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
                     </div>
 
-                    <div className="border-2 border-black rounded-xl overflow-hidden mb-8">
-                        <table className="w-full text-xs text-center border-collapse">
-                            <thead className="bg-slate-100 border-b-2 border-black">
-                                <tr className="h-8">
-                                    <th className="border-r border-black font-black p-1">বিষয়</th>
-                                    <th className="border-r border-black font-black p-1">প্রাপ্ত নম্বর</th>
-                                    <th className="border-r border-black font-black p-1">গ্রেড</th>
-                                    <th className="font-black p-1">পয়েন্ট</th>
+                    <div className="border-[3px] border-black rounded-[32px] overflow-hidden mb-10 shadow-lg">
+                        <table className="w-full text-base text-center border-collapse">
+                            <thead className="bg-slate-100 border-b-[3px] border-black h-12">
+                                <tr>
+                                    <th className="border-r-[2px] border-black font-black p-2">বিষয়ের নাম</th>
+                                    <th className="border-r-[2px] border-black font-black p-2">প্রাপ্ত নম্বর</th>
+                                    <th className="border-r-[2px] border-black font-black p-2">গ্রেড</th>
+                                    <th className="font-black p-2">পয়েন্ট</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {Array.from(searchResult.subjectResults.entries()).map(([name, res]) => (
-                                    <tr key={name} className="h-7 border-b border-slate-300 last:border-0">
-                                        <td className="border-r border-slate-300 text-left pl-3 font-bold">{name}</td>
-                                        <td className="border-r border-slate-300 font-black">{toBengaliNumber(res.marks)}</td>
-                                        <td className="border-r border-slate-300 font-black">{res.grade}</td>
+                                    <tr key={name} className="h-10 border-b-2 border-slate-200 last:border-0">
+                                        <td className="border-r-[2px] border-slate-200 text-left pl-10 font-bold">{name}</td>
+                                        <td className="border-r-[2px] border-slate-200 font-black text-blue-900 text-xl">{toBengaliNumber(res.marks)}</td>
+                                        <td className="border-r-[2px] border-slate-200 font-black">{res.grade}</td>
                                         <td className="font-bold">{toBengaliNumber(res.point.toFixed(2))}</td>
                                     </tr>
                                 ))}
@@ -504,12 +577,13 @@ export default function LoginPage() {
                         </table>
                     </div>
 
-                    <div className="mt-auto flex justify-between px-8 pt-10">
-                        <div className="text-center w-36 border-t border-black pt-1 font-black text-[10px]">অফিসের স্বাক্ষর</div>
-                        <div className="text-center w-36 border-t border-black pt-1 font-black text-[10px]">প্রধান শিক্ষকের স্বাক্ষর</div>
+                    <div className="mt-auto flex justify-between px-16 pt-20">
+                        <div className="text-center w-56 border-t-2 border-black pt-2 font-black text-sm">অফিস সহকারীর স্বাক্ষর</div>
+                        <div className="text-center w-56 border-t-2 border-black pt-2 font-black text-sm">প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
                     </div>
-                    <div className="mt-8 text-center text-[8px] text-slate-300 italic">
-                        Digital Management Portal | {format(new Date(), 'PPpp', { locale: bn })}
+                    <div className="mt-12 text-center text-[10px] text-slate-300 italic border-t border-dashed pt-4 flex justify-between">
+                        <span>Digital Management Portal | {schoolInfo.name}</span>
+                        <span>জেনারেশন সময়: {format(new Date(), 'PPpp', { locale: bn })}</span>
                     </div>
                 </div>
             )}

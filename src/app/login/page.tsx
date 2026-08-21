@@ -19,7 +19,7 @@ import {
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     UserPlus, Bell, ChevronRight,
     TrendingUp, ShieldCheck, MapPin, Phone,
-    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles, LogIn
+    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles, LogIn, Printer
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
@@ -361,17 +361,30 @@ export default function LoginPage() {
         try {
             const cleanRoll = parseInt(bnToEn(searchRoll).trim(), 10);
             const cleanStudentId = bnToEn(searchStudentId).trim().toUpperCase();
-            const studentQuery = query(collection(db, 'students'), where('academicYear', '==', searchYear), where('className', '==', searchClass), where('roll', '==', cleanRoll), limit(1));
+            
+            const studentQuery = query(
+                collection(db, 'students'), 
+                where('academicYear', '==', searchYear), 
+                where('className', '==', searchClass), 
+                where('roll', '==', cleanRoll), 
+                limit(1)
+            );
             const studentSnap = await getDocs(studentQuery);
+            
             if (studentSnap.empty) {
                 toast({ variant: 'destructive', title: 'শিক্ষার্থী পাওয়া যায়নি' });
                 setIsSearching(false); return;
             }
+            
             const foundStudent = studentFromDoc(studentSnap.docs[0]);
-            if (foundStudent.generatedId?.toUpperCase() !== cleanStudentId) {
-                 toast({ variant: 'destructive', title: 'আইডি মেলেনি' });
+            // Robust ID comparison: standardize both to English digits and trim
+            const dbStudentId = bnToEn(foundStudent.generatedId || '').trim().toUpperCase();
+            
+            if (dbStudentId !== cleanStudentId) {
+                 toast({ variant: 'destructive', title: 'আইডি মেলেনি', description: 'অনুগ্রহ করে সঠিক আইডি নম্বরটি পুনরায় লিখুন।' });
                  setIsSearching(false); return;
             }
+            
             const allResults = await getAllResults(db, searchYear, searchExam);
             const classRes = allResults.filter(r => r.className === searchClass);
             if (classRes.length === 0) {
@@ -386,6 +399,7 @@ export default function LoginPage() {
             if (studentProcessed) setSearchResult(studentProcessed);
             else toast({ variant: 'destructive', title: 'ফলাফল পাওয়া যায়নি' });
         } catch (error: any) {
+            console.error("Result Search Error:", error);
             toast({ variant: 'destructive', title: 'সার্ভার ত্রুটি' });
         } finally { setIsSearching(false); }
     };
@@ -455,7 +469,6 @@ export default function LoginPage() {
                                 </Button>
                             </Link>
 
-                            {/* Moved Login Button here to be inline with others */}
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button 
@@ -534,7 +547,6 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {/* Fixed Live Stats Board */}
                         <div className="w-full pt-1">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl">
                                 <div className="bg-white/90 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
@@ -569,7 +581,6 @@ export default function LoginPage() {
                         </div>
                     </section>
 
-                    {/* Right Side: Now Empty to show more of the background image */}
                     <section className="hidden lg:flex flex-1 p-6 sm:p-12 items-center justify-center">
                     </section>
                 </div>

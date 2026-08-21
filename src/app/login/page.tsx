@@ -276,7 +276,7 @@ export default function LoginPage() {
                 const tPromise = getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher')));
                 const attPromise = getDocs(query(collection(db, 'attendance'), where('academicYear', '==', globalYear), where('date', '==', todayStr)));
                 
-                // FIXED: Pass rate specifically for participants recorded in record শাখা (publicExamRecords)
+                // Pass rate specifically for participants recorded in record শাখা (publicExamRecords)
                 const sscRecordsPromise = getDocs(query(
                     collection(db, 'publicExamRecords'), 
                     where('academicYear', '==', globalYear), 
@@ -302,12 +302,16 @@ export default function LoginPage() {
                 });
 
                 // Fixed Percentage Calculation: (Passed SSC / SSC Participants)
+                // Criteria for passing: Grade is not 'F' and GPA > 0
                 const totalSscParticipants = sscSnap.size;
                 const passedCount = sscSnap.docs.filter(doc => {
                     const data = doc.data();
                     const grade = (data.grade || '').toString().trim().toUpperCase();
+                    const gpa = Number(data.gpa) || 0;
+                    
                     // In RECORD management, non-pass is 'F' or 'পায়নী' (for scholarship)
-                    return grade !== '' && grade !== 'F' && grade !== 'পায়নী';
+                    // If grade is 'F' or GPA is 0, they failed
+                    return grade !== '' && grade !== 'F' && grade !== 'পায়নী' && gpa > 0;
                 }).length;
 
                 const passRatePercent = totalSscParticipants > 0 ? (passedCount / totalSscParticipants) * 100 : 0;

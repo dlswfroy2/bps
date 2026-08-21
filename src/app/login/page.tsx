@@ -19,9 +19,9 @@ import {
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     UserPlus, Bell, ChevronRight,
     TrendingUp, ShieldCheck, MapPin, Phone,
-    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles
+    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles, LogIn
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
 import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, limit, orderBy, doc, onSnapshot, Timestamp, FirestoreError } from 'firebase/firestore';
@@ -220,7 +220,7 @@ export default function LoginPage() {
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
     // Search Logic States
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -288,11 +288,13 @@ export default function LoginPage() {
                     }
                 });
 
+                // Accurate Pass Rate Calculation from Public Exam Records
                 const totalSscParticipants = sscSnap.size;
                 const passedCount = sscSnap.docs.filter(doc => {
                     const data = doc.data();
                     const grade = (data.grade || '').toString().trim().toUpperCase();
                     const gpa = Number(data.gpa) || 0;
+                    // Any grade other than F and GPA > 0 is considered Pass
                     return grade !== '' && grade !== 'F' && gpa > 0;
                 }).length;
 
@@ -312,7 +314,7 @@ export default function LoginPage() {
     }, [db, globalYear]);
 
     const handleAuthAction = async (action: 'signIn' | 'signUp', role: UserRole) => {
-        setIsLoading(true);
+        setIsLoadingAuth(true);
         try {
             if (action === 'signIn') {
                 const result = await signIn(email, password, role);
@@ -344,7 +346,7 @@ export default function LoginPage() {
                 description: error.message || 'সার্ভারে সংযোগ করা যাচ্ছে না।',
             });
         } finally {
-            setIsLoading(false);
+            setIsLoadingAuth(false);
         }
     };
 
@@ -504,52 +506,61 @@ export default function LoginPage() {
                         </div>
                     </section>
 
-                    {/* Right Side: Auth Form */}
+                    {/* Right Side: Auth Button Trigger */}
                     <section className="w-full lg:w-[480px] p-6 sm:p-12 flex flex-col items-center justify-center">
-                        <Card className="w-full shadow-2xl border-4 border-white/20 rounded-[32px] overflow-hidden bg-white">
-                            <CardHeader className="bg-primary p-8 text-white text-center">
-                                <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
-                                <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-8">
-                                <Tabs defaultValue="teacher-login" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-6 h-11 rounded-xl">
-                                        <TabsTrigger value="teacher-login" className="font-black text-xs rounded-lg">শিক্ষক</TabsTrigger>
-                                        <TabsTrigger value="admin-login" className="font-black text-xs rounded-lg">এডমিন</TabsTrigger>
-                                        <TabsTrigger value="signup" className="font-black text-xs rounded-lg">নিবন্ধন</TabsTrigger>
-                                    </TabsList>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button className="w-full max-w-[320px] h-20 text-2xl font-black shadow-2xl bg-white text-primary hover:bg-slate-50 rounded-[24px] border-b-8 border-slate-200 active:border-b-0 transition-all gap-3">
+                                    <LogIn className="h-8 w-8" /> লগইন করুন
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-[32px] z-[150]">
+                                <Card className="w-full border-none shadow-none bg-white">
+                                    <CardHeader className="bg-primary p-8 text-white text-center rounded-none">
+                                        <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
+                                        <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-8">
+                                        <Tabs defaultValue="teacher-login" className="w-full">
+                                            <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-6 h-11 rounded-xl">
+                                                <TabsTrigger value="teacher-login" className="font-black text-xs rounded-lg">শিক্ষক</TabsTrigger>
+                                                <TabsTrigger value="admin-login" className="font-black text-xs rounded-lg">এডমিন</TabsTrigger>
+                                                <TabsTrigger value="signup" className="font-black text-xs rounded-lg">নিবন্ধন</TabsTrigger>
+                                            </TabsList>
 
-                                    <TabsContent value="teacher-login" className="mt-0 space-y-4">
-                                        <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'teacher'); }} className="space-y-6">
-                                            <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
-                                                {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
-                                                লগইন করুন
-                                            </Button>
-                                        </form>
-                                    </TabsContent>
-                                    
-                                    <TabsContent value="admin-login" className="mt-0">
-                                        <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'admin'); }} className="space-y-6">
-                                            <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
-                                                {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
-                                                লগইন করুন
-                                            </Button>
-                                        </form>
-                                    </TabsContent>
-                                    
-                                    <TabsContent value="signup" className="mt-0">
-                                        <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signUp', 'teacher'); }} className="space-y-6">
-                                            <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
-                                                নিবন্ধন করুন
-                                            </Button>
-                                        </form>
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </Card>
+                                            <TabsContent value="teacher-login" className="mt-0 space-y-4">
+                                                <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'teacher'); }} className="space-y-6">
+                                                    <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                                    <Button type="submit" disabled={isLoadingAuth} className="w-full h-12 text-lg font-black shadow-xl">
+                                                        {isLoadingAuth ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
+                                                        লগইন করুন
+                                                    </Button>
+                                                </form>
+                                            </TabsContent>
+                                            
+                                            <TabsContent value="admin-login" className="mt-0">
+                                                <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'admin'); }} className="space-y-6">
+                                                    <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                                    <Button type="submit" disabled={isLoadingAuth} className="w-full h-12 text-lg font-black shadow-xl">
+                                                        {isLoadingAuth ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
+                                                        লগইন করুন
+                                                    </Button>
+                                                </form>
+                                            </TabsContent>
+                                            
+                                            <TabsContent value="signup" className="mt-0">
+                                                <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signUp', 'teacher'); }} className="space-y-6">
+                                                    <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                                    <Button type="submit" disabled={isLoadingAuth} className="w-full h-12 text-lg font-black shadow-xl">
+                                                        নিবন্ধন করুন
+                                                    </Button>
+                                                </form>
+                                            </TabsContent>
+                                        </Tabs>
+                                    </CardContent>
+                                </Card>
+                            </DialogContent>
+                        </Dialog>
                     </section>
                 </div>
             </main>

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -137,7 +138,7 @@ export default function LoginPage() {
                     getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear))),
                     getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher'))),
                     getDocs(query(collection(db, 'attendance'), where('academicYear', '==', globalYear), where('date', '==', todayStr))),
-                    getDocs(query(collection(db, 'publicExamRecords'), where('academicYear', '==', globalYear)))
+                    getDocs(query(collection(db, 'publicExamRecords'), where('academicYear', '==', globalYear), where('examType', '==', 'SSC')))
                 ]);
 
                 const totalStudents = sSnap.size;
@@ -355,7 +356,7 @@ export default function LoginPage() {
                                     <Trophy className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
-                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাসের হার</p>
+                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাসের হার (SSC)</p>
                             </div>
                         </div>
                     </div>

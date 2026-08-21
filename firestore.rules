@@ -81,7 +81,7 @@ service cloud.firestore {
     }
 
     match /notices/{id} {
-      allow read: if isAuthed() && hasPermission('view:notices');
+      allow read: if true; 
       allow write: if isAuthed() && hasPermission('manage:notices');
       allow delete: if isAdmin() || (isAuthed() && hasPermission('manage:notices'));
     }
@@ -115,7 +115,7 @@ service cloud.firestore {
     }
 
     match /attendance/{id} {
-      allow read: if isAuthed();
+      allow read: if true; // Allow public read for landing page stats
       allow write: if isAuthed() && (hasPermission('manage:attendance') || hasPermission('input:quick-roll-attendance') || hasPermission('input:missed-attendance') || isAdmin());
       allow delete: if isAdmin() || hasPermission('manage:attendance');
     }
@@ -150,7 +150,7 @@ service cloud.firestore {
     }
 
     match /publicExamRecords/{id} {
-      allow read: if isAuthed() && (hasPermission('view:public-records') || isAdmin());
+      allow read: if true; // Allow public read for landing page stats
       allow write: if isAuthed() && (hasPermission('manage:public-records') || isAdmin());
       allow delete: if isAdmin();
     }

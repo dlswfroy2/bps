@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -442,7 +441,7 @@ export default function LoginPage() {
                                     <Trophy className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
-                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাস (SSC)</p>
+                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">এস এস সি পরীক্ষা-{toBengaliNumber(globalYear)}</p>
                             </div>
                         </div>
                     </div>
@@ -518,7 +517,7 @@ export default function LoginPage() {
                         <>
                             <DialogHeader className="p-8 bg-primary text-white">
                                 <DialogTitle className="text-3xl font-black flex items-center gap-2"><BookOpen className="h-8 w-8" /> ফলাফল অনুসন্ধান</DialogTitle>
-                                <DialogDescription className="text-white/80 font-bold text-lg mt-1">সঠিক তথ্য দিয়ে রেজাল্ট সামারি দেখুন</DialogDescription>
+                                <DialogDescription className="text-white/80 font-bold text-lg mt-1">সঠিক তথ্য দিয়ে ড্রাফট রেজাল্ট সামারি দেখুন</DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleResultSearch} className="p-8 space-y-6 bg-white">
                                 <div className="grid grid-cols-2 gap-4">

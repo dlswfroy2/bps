@@ -15,17 +15,17 @@ import type { UserRole } from '@/lib/user';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { 
-    Loader2, Search, BookOpen, Printer, User, Info, 
+    Loader2, Search, BookOpen, User, Info, 
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
-    LayoutDashboard, UserPlus, Bell, MousePointer2, ChevronRight,
-    TrendingUp, ShieldCheck, Heart, Sparkles, MapPin, Phone, Mail,
-    CalendarCheck, Trophy, ImageIcon, Megaphone
+    UserPlus, Bell, ChevronRight,
+    TrendingUp, ShieldCheck, MapPin, Phone,
+    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
 import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, limit, orderBy, doc, onSnapshot, Timestamp, FirestoreError } from 'firebase/firestore';
-import { Student, studentFromDoc, getStudentPlaceholderImage, sanitizePhotoUrl } from '@/lib/student-data';
+import { studentFromDoc, getStudentPlaceholderImage, sanitizePhotoUrl } from '@/lib/student-data';
 import { getExams, Exam } from '@/lib/exam-data';
 import { getAllResults } from '@/lib/results-data';
 import { getSubjects } from '@/lib/subjects';
@@ -86,7 +86,7 @@ function AuthFormFields({ email, password, setEmail, setPassword }: {
     );
 }
 
-const GalleryCard = () => {
+const BackgroundGallery = () => {
     const db = useFirestore();
     const [config, setConfig] = useState<GalleryConfig>(defaultGalleryConfig);
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -120,46 +120,34 @@ const GalleryCard = () => {
         return () => clearInterval(interval);
     }, [activeImages, config.duration]);
 
-    if (isLoading) return <Skeleton className="h-full w-full rounded-lg" />;
+    if (isLoading) return <div className="absolute inset-0 bg-slate-900" />;
 
     return (
-        <Card className="relative overflow-hidden bg-white border-2 border-black shadow-sm group hover:shadow-lg transition-all duration-500 h-full">
-            <CardHeader className="p-3 bg-primary/5 border-b border-black/10 relative z-20">
-                <CardTitle className="text-xs font-black text-primary flex items-center gap-1.5 uppercase">
-                    <ImageIcon className="h-3.5 w-3.5" /> বিদ্যালয় গ্যালারি
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 relative h-32 overflow-hidden">
-                {activeImages.length > 0 ? (
-                    <div className="relative w-full h-full">
-                        {activeImages.map((img, idx) => (
-                            <div 
-                                key={img.id}
-                                className={cn(
-                                    "absolute inset-0 transition-opacity duration-1000",
-                                    idx === currentIdx ? "opacity-100 z-10" : "opacity-0 z-0"
-                                )}
-                            >
-                                <Image 
-                                    src={img.url} 
-                                    alt={img.title} 
-                                    fill 
-                                    className="object-cover"
-                                />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-[2px] p-1 text-center">
-                                    <p className="text-[10px] text-white font-black truncate">{img.title}</p>
-                                </div>
-                            </div>
-                        ))}
+        <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
+            {activeImages.length > 0 ? (
+                activeImages.map((img, idx) => (
+                    <div 
+                        key={img.id}
+                        className={cn(
+                            "absolute inset-0 transition-opacity duration-2000 ease-in-out",
+                            idx === currentIdx ? "opacity-100 scale-105" : "opacity-0 scale-100"
+                        )}
+                        style={{ transitionProperty: 'opacity, transform', transitionDuration: '2s' }}
+                    >
+                        <Image 
+                            src={img.url} 
+                            alt={img.title} 
+                            fill 
+                            priority={idx === 0}
+                            className="object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
                     </div>
-                ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-muted-foreground italic">
-                        <ImageIcon className="h-8 w-8 mb-1 opacity-20" />
-                        <p className="text-[10px]">ছবি নেই</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                ))
+            ) : (
+                <div className="absolute inset-0 bg-slate-900" />
+            )}
+        </div>
     );
 };
 
@@ -183,7 +171,7 @@ const NoticeTicker = () => {
 
     if (scrollingNotices.length > 0) {
         return (
-            <div className="w-full bg-yellow-100 text-red-700 h-8 flex items-center overflow-hidden border-y-2 border-red-500 shadow-md sticky top-16 md:top-24 z-40 font-kalpurush group cursor-default">
+            <div className="w-full bg-yellow-100/90 backdrop-blur-md text-red-700 h-8 flex items-center overflow-hidden border-y-2 border-red-500 shadow-md sticky top-16 md:top-24 z-40 font-kalpurush group cursor-default">
                 <div className="bg-red-600 text-white px-3 h-full flex items-center gap-1.5 shrink-0 z-10 shadow-lg">
                     <Megaphone className="h-3.5 w-3.5 animate-bounce" />
                     <span className="font-black text-xs whitespace-nowrap leading-none">জরুরি নোটিশ:</span>
@@ -265,7 +253,7 @@ export default function LoginPage() {
         }
     }, [db, searchYear]);
 
-    // Fetch live stats for landing page board
+    // Fetch live stats
     useEffect(() => {
         if (!db) return;
         const fetchStats = async () => {
@@ -276,7 +264,6 @@ export default function LoginPage() {
                 const tPromise = getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher')));
                 const attPromise = getDocs(query(collection(db, 'attendance'), where('academicYear', '==', globalYear), where('date', '==', todayStr)));
                 
-                // Pass rate specifically for participants recorded in record শাখা (publicExamRecords)
                 const sscRecordsPromise = getDocs(query(
                     collection(db, 'publicExamRecords'), 
                     where('academicYear', '==', globalYear), 
@@ -404,7 +391,7 @@ export default function LoginPage() {
     if(loading || user) return null;
 
     return (
-        <div className="min-h-screen flex flex-col font-kalpurush bg-[#F8FAFF] text-slate-900 overflow-x-hidden">
+        <div className="min-h-screen flex flex-col font-kalpurush bg-slate-900 text-slate-900 overflow-x-hidden">
             
             {/* Header / Nav */}
             <header className="sticky top-0 z-[100] w-full h-16 md:h-24 bg-primary flex items-center justify-between px-4 sm:px-12 shadow-md">
@@ -428,147 +415,146 @@ export default function LoginPage() {
 
             <NoticeTicker />
 
-            <main className="flex-1 flex flex-col lg:flex-row relative">
-                
-                {/* Left Side: Welcome & Stats */}
-                <section className="flex-1 p-4 sm:p-8 lg:p-12 flex flex-col justify-start pt-1 space-y-6 relative">
-                    <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
-                        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
-                        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
-                    </div>
+            <main className="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
+                {/* Full Background Gallery */}
+                <BackgroundGallery />
 
-                    <div className="space-y-1 relative z-10">
-                        <h2 className="text-base sm:text-lg font-black leading-tight text-slate-900 tracking-tight">
-                            সৃজনশীল শিক্ষায় <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
-                        </h2>
-                        <p className="text-[11px] sm:text-xs font-bold text-slate-600 max-w-2xl leading-relaxed">
-                            {schoolInfo.name} এর কেন্দ্রীয় ডিজিটাল ম্যানেজমেন্ট পোর্টালে আপনাকে স্বাগতম। আধুনিক শিক্ষা ও প্রশাসনিক কাজে স্বচ্ছতা নিশ্চিত করতে আমাদের এই ডিজিটাল উদ্যোগ।
-                        </p>
-                    </div>
+                {/* Content Overlay */}
+                <div className="relative z-10 flex-1 flex flex-col lg:flex-row">
+                    {/* Left Side: Welcome & Stats */}
+                    <section className="flex-1 p-4 sm:p-8 lg:p-12 flex flex-col justify-start pt-1 space-y-4">
+                        <div className="space-y-1">
+                            <h2 className="text-sm sm:text-base font-black leading-tight text-white drop-shadow-md tracking-tight">
+                                সৃজনশীল শিক্ষায় <span className="text-yellow-400 italic">এক ধাপ এগিয়ে...</span>
+                            </h2>
+                            <p className="text-[10px] sm:text-[11px] font-bold text-white/90 max-w-2xl leading-relaxed drop-shadow-md">
+                                {schoolInfo.name} এর কেন্দ্রীয় ডিজিটাল ম্যানেজমেন্ট পোর্টালে আপনাকে স্বাগতম। আধুনিক শিক্ষা ও প্রশাসনিক কাজে স্বচ্ছতা নিশ্চিত করতে আমাদের এই ডিজিটাল উদ্যোগ।
+                            </p>
+                        </div>
 
-                    <div className="flex flex-wrap gap-3 relative z-10">
-                        <Button 
-                            variant="outline" 
-                            size="lg" 
-                            className="h-10 px-6 rounded-xl border-2 border-primary/30 text-primary font-black text-xs bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
-                            onClick={() => setIsSearchOpen(true)}
-                        >
-                            <BookOpen className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
-                            ফলাফল অনুসন্ধান
-                        </Button>
-                        <Link href="/admission">
+                        <div className="flex flex-wrap gap-3">
                             <Button 
                                 variant="outline" 
                                 size="lg" 
-                                className="h-10 px-6 rounded-xl border-2 border-emerald-300 text-emerald-700 font-black text-xs bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
+                                className="h-9 px-5 rounded-xl border-2 border-white/30 text-white font-black text-[10px] bg-white/10 backdrop-blur-md shadow-xl hover:bg-white hover:text-primary transition-all duration-500 group"
+                                onClick={() => setIsSearchOpen(true)}
                             >
-                                <UserPlus className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
-                                অনলাইন ভর্তি
+                                <BookOpen className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
+                                ফলাফল অনুসন্ধান
                             </Button>
-                        </Link>
-                    </div>
+                            <Link href="/admission">
+                                <Button 
+                                    variant="outline" 
+                                    size="lg" 
+                                    className="h-9 px-5 rounded-xl border-2 border-emerald-400/50 text-white font-black text-[10px] bg-emerald-600/20 backdrop-blur-md shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
+                                >
+                                    <UserPlus className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
+                                    অনলাইন ভর্তি
+                                </Button>
+                            </Link>
+                        </div>
 
-                    <div className="flex flex-wrap gap-4 relative z-10 pt-1">
-                        <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><CheckCircle2 className="h-3 w-3" /></div>
-                            <span className="font-bold text-slate-700 text-xs">ডিজিটাল হাজিরা</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><ShieldCheck className="h-3 w-3" /></div>
-                            <span className="font-bold text-slate-700 text-xs">নিরাপদ তথ্যভাণ্ডার</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><TrendingUp className="h-3 w-3" /></div>
-                            <span className="font-bold text-slate-700 text-xs">স্বচ্ছ হিসাব শাখা</span>
-                        </div>
-                    </div>
-
-                    {/* Fixed Live Stats Board */}
-                    <div className="w-full pt-1 relative z-10">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-                            <GalleryCard />
-                            <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group h-full">
-                                <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                                    <Users className="h-5 w-5" />
-                                </div>
-                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
-                                <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">শিক্ষার্থী</p>
+                        <div className="flex flex-wrap gap-4 pt-1">
+                            <div className="flex items-center gap-2">
+                                <div className="h-5 w-5 rounded-full bg-white/20 backdrop-blur-md shadow-md flex items-center justify-center text-white"><CheckCircle2 className="h-3 w-3" /></div>
+                                <span className="font-bold text-white text-[10px] drop-shadow-md">ডিজিটাল হাজিরা</span>
                             </div>
-                            <div className="bg-white border-2 border-emerald-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-emerald-300 group h-full">
-                                <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                                    <GraduationCap className="h-5 w-5" />
-                                </div>
-                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
-                                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">শিক্ষক</p>
+                            <div className="flex items-center gap-2">
+                                <div className="h-5 w-5 rounded-full bg-white/20 backdrop-blur-md shadow-md flex items-center justify-center text-white"><ShieldCheck className="h-3 w-3" /></div>
+                                <span className="font-bold text-white text-[10px] drop-shadow-md">নিরাপদ তথ্যভাণ্ডার</span>
                             </div>
-                            <div className="bg-white border-2 border-blue-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-blue-300 group h-full">
-                                <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                    <CalendarCheck className="h-5 w-5" />
-                                </div>
-                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
-                                <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতি</p>
-                            </div>
-                            <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group h-full">
-                                <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                                    <Trophy className="h-5 w-5" />
-                                </div>
-                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
-                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">এস এস সি পরীক্ষা-{toBengaliNumber(globalYear)}</p>
+                            <div className="flex items-center gap-2">
+                                <div className="h-5 w-5 rounded-full bg-white/20 backdrop-blur-md shadow-md flex items-center justify-center text-white"><TrendingUp className="h-3 w-3" /></div>
+                                <span className="font-bold text-white text-[10px] drop-shadow-md">স্বচ্ছ হিসাব শাখা</span>
                             </div>
                         </div>
-                    </div>
-                </section>
 
-                {/* Right Side: Auth Form */}
-                <section className="w-full lg:w-[480px] bg-white border-l-2 border-primary/5 p-6 sm:p-12 flex flex-col items-center justify-center shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
-                    <Card className="w-full shadow-2xl border-2 border-primary/20 rounded-[32px] overflow-hidden bg-white">
-                        <CardHeader className="bg-primary p-8 text-white text-center">
-                            <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
-                            <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-8">
-                            <Tabs defaultValue="teacher-login" className="w-full">
-                                <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-6 h-11 rounded-xl">
-                                    <TabsTrigger value="teacher-login" className="font-black text-xs rounded-lg">শিক্ষক</TabsTrigger>
-                                    <TabsTrigger value="admin-login" className="font-black text-xs rounded-lg">এডমিন</TabsTrigger>
-                                    <TabsTrigger value="signup" className="font-black text-xs rounded-lg">নিবন্ধন</TabsTrigger>
-                                </TabsList>
+                        {/* Fixed Live Stats Board */}
+                        <div className="w-full pt-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl">
+                                <div className="bg-white/90 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                                    <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                        <Users className="h-5 w-5" />
+                                    </div>
+                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
+                                    <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">শিক্ষার্থী</p>
+                                </div>
+                                <div className="bg-white/90 backdrop-blur-md border-2 border-emerald-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                                    <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                        <GraduationCap className="h-5 w-5" />
+                                    </div>
+                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">শিক্ষক</p>
+                                </div>
+                                <div className="bg-white/90 backdrop-blur-md border-2 border-blue-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                                    <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                        <CalendarCheck className="h-5 w-5" />
+                                    </div>
+                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
+                                    <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতি</p>
+                                </div>
+                                <div className="bg-white/90 backdrop-blur-md border-2 border-rose-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                                    <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                                        <Trophy className="h-5 w-5" />
+                                    </div>
+                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
+                                    <p className="text-[10px] font-black text-rose-600 uppercase mt-1">এস এস সি পরীক্ষা-{toBengaliNumber(globalYear)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
-                                <TabsContent value="teacher-login" className="mt-0 space-y-4">
-                                    <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'teacher'); }} className="space-y-6">
-                                        <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                        <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
-                                            {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
-                                            লগইন করুন
-                                        </Button>
-                                    </form>
-                                </TabsContent>
-                                
-                                <TabsContent value="admin-login" className="mt-0">
-                                    <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'admin'); }} className="space-y-6">
-                                        <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                        <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
-                                            {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
-                                            লগইন করুন
-                                        </Button>
-                                    </form>
-                                </TabsContent>
-                                
-                                <TabsContent value="signup" className="mt-0">
-                                    <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signUp', 'teacher'); }} className="space-y-6">
-                                        <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
-                                        <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
-                                            নিবন্ধন করুন
-                                        </Button>
-                                    </form>
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
-                </section>
+                    {/* Right Side: Auth Form */}
+                    <section className="w-full lg:w-[480px] p-6 sm:p-12 flex flex-col items-center justify-center">
+                        <Card className="w-full shadow-2xl border-4 border-white/20 rounded-[32px] overflow-hidden bg-white/95 backdrop-blur-xl">
+                            <CardHeader className="bg-primary p-8 text-white text-center">
+                                <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
+                                <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-8">
+                                <Tabs defaultValue="teacher-login" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-6 h-11 rounded-xl">
+                                        <TabsTrigger value="teacher-login" className="font-black text-xs rounded-lg">শিক্ষক</TabsTrigger>
+                                        <TabsTrigger value="admin-login" className="font-black text-xs rounded-lg">এডমিন</TabsTrigger>
+                                        <TabsTrigger value="signup" className="font-black text-xs rounded-lg">নিবন্ধন</TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="teacher-login" className="mt-0 space-y-4">
+                                        <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'teacher'); }} className="space-y-6">
+                                            <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
+                                                {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
+                                                লগইন করুন
+                                            </Button>
+                                        </form>
+                                    </TabsContent>
+                                    
+                                    <TabsContent value="admin-login" className="mt-0">
+                                        <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'admin'); }} className="space-y-6">
+                                            <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
+                                                {isLoading ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
+                                                লগইন করুন
+                                            </Button>
+                                        </form>
+                                    </TabsContent>
+                                    
+                                    <TabsContent value="signup" className="mt-0">
+                                        <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signUp', 'teacher'); }} className="space-y-6">
+                                            <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
+                                            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-black shadow-xl">
+                                                নিবন্ধন করুন
+                                            </Button>
+                                        </form>
+                                    </TabsContent>
+                                </Tabs>
+                            </CardContent>
+                        </Card>
+                    </section>
+                </div>
             </main>
 
-            <footer className="w-full bg-slate-900 text-white/60 p-8 sm:px-12 flex flex-col sm:flex-row justify-between items-center gap-6 font-bold text-sm">
+            <footer className="w-full bg-slate-900 text-white/60 p-8 sm:px-12 flex flex-col sm:flex-row justify-between items-center gap-6 font-bold text-sm z-50">
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
                     <p>© ২০২৬ {schoolInfo.name}</p>
                     <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {schoolInfo.address}</div>
@@ -581,7 +567,7 @@ export default function LoginPage() {
 
             {/* Result Search Dialog */}
             <Dialog open={isSearchOpen} onOpenChange={(o) => { setIsSearchOpen(o); if(!o) { setSearchResult(null); setSearchRoll(''); setSearchStudentId(''); }}}>
-                <DialogContent className="sm:max-w-xl p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-2xl">
+                <DialogContent className="sm:max-w-xl p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-2xl z-[150]">
                     {!searchResult ? (
                         <>
                             <DialogHeader className="p-8 bg-primary text-white">
@@ -729,7 +715,7 @@ export default function LoginPage() {
                         <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">মোট নম্বর</p><p className="text-3xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p></div>
                         <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">GPA</p><p className="text-3xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p></div>
                         <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">গ্রেড</p><p className="text-3xl font-black">{searchResult.isPass ? searchResult.finalGrade : 'F'}</p></div>
-                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">মেধাক্রম</p><p className="text-3xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
+                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">মেধাস্থান</p><p className="text-3xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
                     </div>
 
                     <div className="border-[3px] border-black rounded-[32px] overflow-hidden mb-10 shadow-lg">

@@ -19,7 +19,7 @@ import {
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     LayoutDashboard, UserPlus, Bell, MousePointer2, ChevronRight,
     TrendingUp, ShieldCheck, Heart, Sparkles, MapPin, Phone, Mail,
-    CalendarCheck, Trophy, ImageIcon
+    CalendarCheck, Trophy, ImageIcon, Megaphone
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
@@ -163,6 +163,65 @@ const GalleryCard = () => {
     );
 };
 
+const NoticeTicker = () => {
+    const db = useFirestore();
+    const [scrollingNotices, setScrollingNotices] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db) return;
+        const q = query(collection(db, 'notices'), orderBy('date', 'desc'), limit(15));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const scrolling = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() } as any))
+                .filter(n => !!n.isScrolling);
+            setScrollingNotices(scrolling);
+            setIsLoading(false);
+        });
+        return () => unsubscribe();
+    }, [db]);
+
+    if (scrollingNotices.length > 0) {
+        return (
+            <div className="w-full bg-yellow-100 text-red-700 h-8 flex items-center overflow-hidden border-y-2 border-red-500 shadow-md sticky top-16 md:top-24 z-40 font-kalpurush group cursor-default">
+                <div className="bg-red-600 text-white px-3 h-full flex items-center gap-1.5 shrink-0 z-10 shadow-lg">
+                    <Megaphone className="h-3.5 w-3.5 animate-bounce" />
+                    <span className="font-black text-xs whitespace-nowrap leading-none">জরুরি নোটিশ:</span>
+                </div>
+                <div className="flex-1 relative overflow-hidden h-full flex items-center">
+                    <div className="absolute whitespace-nowrap animate-marquee flex items-center gap-10 group-hover:pause-animation">
+                        {scrollingNotices.map((notice, idx) => (
+                            <span key={`notice-${idx}`} className="font-black text-xs tracking-tight">
+                                <span className="text-blue-800">[{notice.title}]</span> - {notice.content.replace(/\n/g, ' ')}
+                            </span>
+                        ))}
+                        {scrollingNotices.map((notice, idx) => (
+                            <span key={`notice-loop-${idx}`} className="font-black text-xs tracking-tight">
+                                <span className="text-blue-800">[{notice.title}]</span> - {notice.content.replace(/\n/g, ' ')}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+                <style jsx>{`
+                    @keyframes marquee {
+                        0% { transform: translateX(0); }
+                        100% { transform: translateX(-50%); }
+                    }
+                    .animate-marquee {
+                        animation: marquee 45s linear infinite;
+                        display: inline-flex;
+                        width: max-content;
+                    }
+                    .pause-animation {
+                        animation-play-state: paused;
+                    }
+                `}</style>
+            </div>
+        );
+    }
+    return null;
+};
+
 export default function LoginPage() {
     const { toast } = useToast();
     const router = useRouter();
@@ -206,7 +265,7 @@ export default function LoginPage() {
         }
     }, [db, searchYear]);
 
-    // Fetch live stats for landing page
+    // Fetch live stats for landing page board
     useEffect(() => {
         if (!db) return;
         const fetchStats = async () => {
@@ -216,16 +275,24 @@ export default function LoginPage() {
                 const sPromise = getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear)));
                 const tPromise = getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher')));
                 const attPromise = getDocs(query(collection(db, 'attendance'), where('academicYear', '==', globalYear), where('date', '==', todayStr)));
-                const recordsPromise = getDocs(query(collection(db, 'publicExamRecords'), where('academicYear', '==', globalYear), where('examType', '==', 'SSC')));
+                
+                // FIXED: Pass rate specifically for participants recorded in record শাখা (publicExamRecords)
+                const sscRecordsPromise = getDocs(query(
+                    collection(db, 'publicExamRecords'), 
+                    where('academicYear', '==', globalYear), 
+                    where('examType', '==', 'SSC')
+                ));
 
-                const [sSnap, tSnap, attSnap, recordsSnap] = await Promise.all([
+                const [sSnap, tSnap, attSnap, sscSnap] = await Promise.all([
                     sPromise.catch(() => ({ size: 0, docs: [] })),
                     tPromise.catch(() => ({ size: 0, docs: [] })),
                     attPromise.catch(() => ({ size: 0, docs: [] })),
-                    recordsPromise.catch(() => ({ size: 0, docs: [] }))
+                    sscRecordsPromise.catch(() => ({ size: 0, docs: [] }))
                 ]);
 
-                const totalStudents = sSnap.size;
+                const totalStudentsCount = sSnap.size;
+                const activeTeachersCount = tSnap.size;
+
                 let presentCount = 0;
                 (attSnap as any).docs.forEach((doc: any) => {
                     const data = doc.data();
@@ -234,18 +301,22 @@ export default function LoginPage() {
                     }
                 });
 
-                const totalRecords = (recordsSnap as any).size;
-                const passedCount = (recordsSnap as any).docs.filter((doc: any) => {
+                // Fixed Percentage Calculation: (Passed SSC / SSC Participants)
+                const totalSscParticipants = sscSnap.size;
+                const passedCount = sscSnap.docs.filter(doc => {
                     const data = doc.data();
-                    const grade = data.grade;
-                    return grade && grade !== 'F' && grade !== 'পায়নী';
+                    const grade = (data.grade || '').toString().trim().toUpperCase();
+                    // In RECORD management, non-pass is 'F' or 'পায়নী' (for scholarship)
+                    return grade !== '' && grade !== 'F' && grade !== 'পায়নী';
                 }).length;
 
+                const passRatePercent = totalSscParticipants > 0 ? (passedCount / totalSscParticipants) * 100 : 0;
+
                 setStats({ 
-                    students: totalStudents, 
-                    teachers: (tSnap as any).size,
-                    attendanceRate: totalStudents > 0 ? (presentCount / totalStudents) * 100 : 0,
-                    passRate: totalRecords > 0 ? (passedCount / totalRecords) * 100 : 0
+                    students: totalStudentsCount, 
+                    teachers: activeTeachersCount,
+                    attendanceRate: totalStudentsCount > 0 ? (presentCount / totalStudentsCount) * 100 : 0,
+                    passRate: passRatePercent
                 });
             } catch (e) {
                 console.error("Live Stats Error:", e);
@@ -295,7 +366,7 @@ export default function LoginPage() {
         e.preventDefault();
         const bnToEn = (str: string) => str.toString().replace(/[০-৯]/g, d => "0123456789"["০১২৩৪৫৬৭৮৯".indexOf(d)].toString());
         if (!db || !searchYear || !searchClass || !searchExam || !searchRoll || !searchStudentId) {
-            toast({ variant: 'destructive', title: 'তথ্য অসম্পূর্ণ', description: 'সবগুলো ঘর পূরণ করুন।' });
+            toast({ variant: 'destructive', title: 'তথ্য অসম্পূর্ণ', description: 'সবগুলো ঘর পূরণ করুন। ' });
             return;
         }
         setIsSearching(true);
@@ -339,11 +410,11 @@ export default function LoginPage() {
             {/* Header / Nav */}
             <header className="sticky top-0 z-[100] w-full h-16 md:h-24 bg-primary flex items-center justify-between px-4 sm:px-12 shadow-md">
                 <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-                    <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0 rounded-full border-2 border-white/20 p-0.5 bg-white shadow-md">
+                    <div className="relative h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-full border-2 border-white/20 p-0.5 bg-white shadow-md">
                         {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-full" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain p-1" />}
                     </div>
                     <div>
-                        <h1 className="text-xl sm:text-2xl md:text-[40px] font-black text-white leading-tight tracking-tight md:[text-shadow:1px_1px_0px_#000,2px_2px_4px_rgba(0,0,0,0.5)]">
+                        <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white leading-tight tracking-tight md:[text-shadow:1px_1px_0px_#000,2px_2px_4px_rgba(0,0,0,0.5)]">
                             {schoolInfo.name}
                         </h1>
                         <p className="text-[10px] md:text-xs font-bold text-white/80 uppercase tracking-widest mt-0.5">Digital Management Portal</p>
@@ -356,20 +427,22 @@ export default function LoginPage() {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col lg:flex-row">
+            <NoticeTicker />
+
+            <main className="flex-1 flex flex-col lg:flex-row relative">
                 
                 {/* Left Side: Welcome & Stats */}
-                <section className="flex-1 p-4 sm:p-8 lg:p-16 flex flex-col justify-start pt-2 space-y-4 relative">
+                <section className="flex-1 p-4 sm:p-8 lg:p-12 flex flex-col justify-start pt-2 space-y-6 relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
                     </div>
 
                     <div className="space-y-1 relative z-10">
-                        <h2 className="text-xl sm:text-2xl font-black leading-tight text-slate-900 tracking-tight">
+                        <h2 className="text-lg sm:text-xl font-black leading-tight text-slate-900 tracking-tight">
                             সৃজনশীল শিক্ষায় <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
                         </h2>
-                        <p className="text-xs sm:text-sm font-bold text-slate-600 max-w-2xl leading-relaxed">
+                        <p className="text-[11px] sm:text-xs font-bold text-slate-600 max-w-2xl leading-relaxed">
                             {schoolInfo.name} এর কেন্দ্রীয় ডিজিটাল ম্যানেজমেন্ট পোর্টালে আপনাকে স্বাগতম। আধুনিক শিক্ষা ও প্রশাসনিক কাজে স্বচ্ছতা নিশ্চিত করতে আমাদের এই ডিজিটাল উদ্যোগ।
                         </p>
                     </div>
@@ -411,32 +484,32 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {/* Live Stats Board */}
-                    <div className="w-full space-y-4 pt-2 relative z-10">
+                    {/* Fixed Live Stats Board */}
+                    <div className="w-full pt-2 relative z-10">
                         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
                             <GalleryCard />
-                            <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group">
+                            <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group h-full">
                                 <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                     <Users className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
                                 <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">শিক্ষার্থী</p>
                             </div>
-                            <div className="bg-white border-2 border-emerald-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-emerald-300 group">
+                            <div className="bg-white border-2 border-emerald-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-emerald-300 group h-full">
                                 <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                                     <GraduationCap className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
                                 <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">শিক্ষক</p>
                             </div>
-                            <div className="bg-white border-2 border-blue-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-blue-300 group">
+                            <div className="bg-white border-2 border-blue-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-blue-300 group h-full">
                                 <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                     <CalendarCheck className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
                                 <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতি</p>
                             </div>
-                            <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group">
+                            <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group h-full">
                                 <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                                     <Trophy className="h-5 w-5" />
                                 </div>
@@ -449,8 +522,6 @@ export default function LoginPage() {
 
                 {/* Right Side: Auth Form */}
                 <section className="w-full lg:w-[480px] bg-white border-l-2 border-primary/5 p-6 sm:p-12 flex flex-col items-center justify-center shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
-                    
-                    {/* Login Card */}
                     <Card className="w-full shadow-2xl border-2 border-primary/20 rounded-[32px] overflow-hidden bg-white">
                         <CardHeader className="bg-primary p-8 text-white text-center">
                             <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
@@ -498,7 +569,6 @@ export default function LoginPage() {
                 </section>
             </main>
 
-            {/* Footer */}
             <footer className="w-full bg-slate-900 text-white/60 p-8 sm:px-12 flex flex-col sm:flex-row justify-between items-center gap-6 font-bold text-sm">
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
                     <p>© ২০২৬ {schoolInfo.name}</p>
@@ -698,4 +768,10 @@ export default function LoginPage() {
             )}
         </div>
     );
+}
+
+function toBengaliNumberForStats(str: string | number) {
+  if (!str && str !== 0) return '';
+  const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(str).replace(/[0-9]/g, (w) => bengaliDigits[parseInt(w, 10)]);
 }

@@ -728,44 +728,44 @@ export default function LoginPage() {
 
             {/* Hidden Printable Result Summary */}
             {searchResult && (
-                <div className="hidden print:block printable-area bg-white text-black p-10 font-kalpurush border-[12px] border-double border-primary/20 rounded-sm w-[210mm] h-[297mm] mx-auto overflow-hidden">
-                    <header className="text-center border-b-4 border-primary pb-4 mb-8 flex flex-col items-center">
-                        {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-3" />}
-                        <h1 className="text-4xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
-                        <p className="text-lg font-bold text-slate-700">{schoolInfo.address}</p>
-                        <div className="mt-4 inline-block bg-primary text-white px-10 py-1.5 rounded-full font-black text-xl shadow-lg">ফলাফল বিবরণী (সামারি)</div>
+                <div className="hidden print:block printable-area bg-white text-black p-8 font-kalpurush border-[10px] border-double border-primary/20 rounded-sm w-[210mm] h-[297mm] mx-auto overflow-hidden">
+                    <header className="text-center border-b-4 border-primary pb-2 mb-6 flex flex-col items-center">
+                        {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-20 h-20 object-contain mb-2" />}
+                        <h1 className="text-3xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
+                        <p className="text-base font-bold text-slate-700">{schoolInfo.address}</p>
+                        <div className="mt-2 inline-block bg-primary text-white px-8 py-1 rounded-full font-black text-lg shadow-lg">ফলাফল বিবরণী (সামারি)</div>
                     </header>
 
-                    <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-10 text-lg font-bold bg-slate-50 p-6 border-2 rounded-[32px]">
-                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">শিক্ষার্থীর নাম:</span> <span className="font-black text-primary">{searchResult.student.studentNameBn}</span></div>
-                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">আইডি নং:</span> <span className="font-black">{toBengaliNumber(searchResult.student.generatedId || '-')}</span></div>
-                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">শ্রেণি ও রোল:</span> <span className="font-black">{classNamesMap[searchResult.student.className]} শ্রেণি, রোল- {toBengaliNumber(searchResult.student.roll)}</span></div>
-                        <div className="flex gap-2 border-b-2 border-dashed pb-2"><span className="text-slate-500 w-32">পরীক্ষার নাম:</span> <span className="font-black">{searchExam}</span></div>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-6 text-base font-bold bg-slate-50 p-4 border-2 rounded-[24px]">
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-28">শিক্ষার্থীর নাম:</span> <span className="font-black text-primary">{searchResult.student.studentNameBn}</span></div>
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-20">আইডি নং:</span> <span className="font-black">{toBengaliNumber(searchResult.student.generatedId || '-')}</span></div>
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-28">শ্রেণি ও রোল:</span> <span className="font-black">{classNamesMap[searchResult.student.className]} শ্রেণি, রোল- {toBengaliNumber(searchResult.student.roll)}</span></div>
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-20">পরীক্ষার নাম:</span> <span className="font-black">{searchExam}</span></div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4 mb-10">
-                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">মোট নম্বর</p><p className="text-3xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p></div>
-                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">GPA</p><p className="text-3xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p></div>
-                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">গ্রেড</p><p className="text-3xl font-black">{searchResult.isPass ? searchResult.finalGrade : 'F'}</p></div>
-                        <div className="p-4 border-[3px] border-black rounded-2xl text-center shadow-md"><p className="text-xs font-black uppercase text-muted-foreground mb-1">মেধাস্থান</p><p className="text-3xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">মোট নম্বর</p><p className="text-2xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p></div>
+                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">GPA</p><p className="text-2xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p></div>
+                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">গ্রেড</p><p className="text-2xl font-black">{searchResult.isPass ? searchResult.finalGrade : 'F'}</p></div>
+                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">মেধাস্থান</p><p className="text-2xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
                     </div>
 
-                    <div className="border-[3px] border-black rounded-[32px] overflow-hidden mb-10 shadow-lg">
-                        <table className="w-full text-base text-center border-collapse">
-                            <thead className="bg-slate-100 border-b-[3px] border-black h-12">
+                    <div className="border-[2px] border-black rounded-[24px] overflow-hidden mb-6 shadow-md">
+                        <table className="w-full text-sm text-center border-collapse">
+                            <thead className="bg-slate-100 border-b-[2px] border-black h-10">
                                 <tr>
-                                    <th className="border-r-[2px] border-black font-black p-2">বিষয়ের নাম</th>
-                                    <th className="border-r-[2px] border-black font-black p-2">প্রাপ্ত নম্বর</th>
-                                    <th className="border-r-[2px] border-black font-black p-2">গ্রেড</th>
-                                    <th className="font-black p-2">পয়েন্ট</th>
+                                    <th className="border-r border-black font-black p-1.5">বিষয়ের নাম</th>
+                                    <th className="border-r border-black font-black p-1.5">প্রাপ্ত নম্বর</th>
+                                    <th className="border-r border-black font-black p-1.5">গ্রেড</th>
+                                    <th className="font-black p-1.5">পয়েন্ট</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {Array.from(searchResult.subjectResults.entries()).map(([name, res]) => (
-                                    <tr key={name} className="h-10 border-b-2 border-slate-200 last:border-0">
-                                        <td className="border-r-[2px] border-slate-200 text-left pl-10 font-bold">{name}</td>
-                                        <td className="border-r-[2px] border-slate-200 font-black text-blue-900 text-xl">{toBengaliNumber(res.marks)}</td>
-                                        <td className="border-r-[2px] border-slate-200 font-black">{res.grade}</td>
+                                    <tr key={name} className="h-8 border-b border-slate-200 last:border-0">
+                                        <td className="border-r border-slate-200 text-left pl-8 font-bold">{name}</td>
+                                        <td className="border-r border-slate-200 font-black text-blue-900 text-lg">{toBengaliNumber(res.marks)}</td>
+                                        <td className="border-r border-slate-200 font-black">{res.grade}</td>
                                         <td className="font-bold">{toBengaliNumber(res.point.toFixed(2))}</td>
                                     </tr>
                                 ))}
@@ -773,11 +773,11 @@ export default function LoginPage() {
                         </table>
                     </div>
 
-                    <div className="mt-auto flex justify-between px-16 pt-20">
-                        <div className="text-center w-56 border-t-2 border-black pt-2 font-black text-sm">অফিস সহকারীর স্বাক্ষর</div>
-                        <div className="text-center w-56 border-t-2 border-black pt-2 font-black text-sm">প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
+                    <div className="mt-auto flex justify-between px-12 pt-10">
+                        <div className="text-center w-48 border-t-2 border-black pt-1.5 font-black text-xs">অফিস সহকারীর স্বাক্ষর</div>
+                        <div className="text-center w-48 border-t-2 border-black pt-1.5 font-black text-xs">প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
                     </div>
-                    <div className="mt-12 text-center text-[10px] text-slate-300 italic border-t border-dashed pt-4 flex justify-between">
+                    <div className="mt-8 text-center text-[9px] text-slate-300 italic border-t border-dashed pt-3 flex justify-between">
                         <span>Digital Management Portal | {schoolInfo.name}</span>
                         <span>জেনারেশন সময়: {format(new Date(), 'PPpp', { locale: bn })}</span>
                     </div>

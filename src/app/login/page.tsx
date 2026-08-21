@@ -20,12 +20,12 @@ import {
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     LayoutDashboard, UserPlus, Bell, MousePointer2, ChevronRight,
     TrendingUp, ShieldCheck, Heart, Sparkles, MapPin, Phone, Mail,
-    CalendarCheck, Trophy
+    CalendarCheck, Trophy, ImageIcon
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
 import { useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, orderBy, doc, onSnapshot, Timestamp, FirestoreError } from 'firebase/firestore';
 import { Student, studentFromDoc, getStudentPlaceholderImage, sanitizePhotoUrl } from '@/lib/student-data';
 import { getExams, Exam } from '@/lib/exam-data';
 import { getAllResults } from '@/lib/results-data';
@@ -37,6 +37,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
+import { GalleryConfig, defaultGalleryConfig } from '@/lib/gallery-data';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const toBengaliNumber = (str: string | number | undefined | null) => {
     if (!str && str !== 0) return '';
@@ -84,6 +87,83 @@ function AuthFormFields({ email, password, setEmail, setPassword }: {
     );
 }
 
+const GalleryCard = () => {
+    const db = useFirestore();
+    const [config, setConfig] = useState<GalleryConfig>(defaultGalleryConfig);
+    const [currentIdx, setCurrentIdx] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db) return;
+        const unsub = onSnapshot(doc(db, 'school', 'gallery'), (snap) => {
+            if (snap.exists()) {
+                setConfig(snap.data() as GalleryConfig);
+            }
+            setIsLoading(false);
+        }, async (error: FirestoreError) => {
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'school/gallery',
+                    operation: 'get',
+                }));
+            }
+        });
+        return () => unsub();
+    }, [db]);
+
+    const activeImages = useMemo(() => config.images.filter(img => img.isActive), [config.images]);
+
+    useEffect(() => {
+        if (activeImages.length <= 1) return;
+        const interval = setInterval(() => {
+            setCurrentIdx(prev => (prev + 1) % activeImages.length);
+        }, config.duration * 1000);
+        return () => clearInterval(interval);
+    }, [activeImages, config.duration]);
+
+    if (isLoading) return <Skeleton className="h-full w-full rounded-lg" />;
+
+    return (
+        <Card className="relative overflow-hidden bg-white border-2 border-black shadow-sm group hover:shadow-lg transition-all duration-500 h-full">
+            <CardHeader className="p-3 bg-primary/5 border-b border-black/10 relative z-20">
+                <CardTitle className="text-xs font-black text-primary flex items-center gap-1.5 uppercase">
+                    <ImageIcon className="h-3.5 w-3.5" /> বিদ্যালয় গ্যালারি
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 relative h-32 overflow-hidden">
+                {activeImages.length > 0 ? (
+                    <div className="relative w-full h-full">
+                        {activeImages.map((img, idx) => (
+                            <div 
+                                key={img.id}
+                                className={cn(
+                                    "absolute inset-0 transition-opacity duration-1000",
+                                    idx === currentIdx ? "opacity-100 z-10" : "opacity-0 z-0"
+                                )}
+                            >
+                                <Image 
+                                    src={img.url} 
+                                    alt={img.title} 
+                                    fill 
+                                    className="object-cover"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-[2px] p-1 text-center">
+                                    <p className="text-[10px] text-white font-black truncate">{img.title}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-muted-foreground italic">
+                        <ImageIcon className="h-8 w-8 mb-1 opacity-20" />
+                        <p className="text-[10px]">ছবি নেই</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
 export default function LoginPage() {
     const { toast } = useToast();
     const router = useRouter();
@@ -127,38 +207,44 @@ export default function LoginPage() {
         }
     }, [db, searchYear]);
 
-    // Fetch live stats
+    // Fetch live stats for landing page
     useEffect(() => {
         if (!db) return;
         const fetchStats = async () => {
             try {
                 const todayStr = format(new Date(), 'yyyy-MM-dd');
                 
+                const sPromise = getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear)));
+                const tPromise = getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher')));
+                const attPromise = getDocs(query(collection(db, 'attendance'), where('academicYear', '==', globalYear), where('date', '==', todayStr)));
+                const recordsPromise = getDocs(query(collection(db, 'publicExamRecords'), where('academicYear', '==', globalYear), where('examType', '==', 'SSC')));
+
                 const [sSnap, tSnap, attSnap, recordsSnap] = await Promise.all([
-                    getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear))),
-                    getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher'))),
-                    getDocs(query(collection(db, 'attendance'), where('academicYear', '==', globalYear), where('date', '==', todayStr))),
-                    getDocs(query(collection(db, 'publicExamRecords'), where('academicYear', '==', globalYear), where('examType', '==', 'SSC')))
+                    sPromise.catch(() => ({ size: 0, docs: [] })),
+                    tPromise.catch(() => ({ size: 0, docs: [] })),
+                    attPromise.catch(() => ({ size: 0, docs: [] })),
+                    recordsPromise.catch(() => ({ size: 0, docs: [] }))
                 ]);
 
                 const totalStudents = sSnap.size;
                 let presentCount = 0;
-                attSnap.docs.forEach(doc => {
+                (attSnap as any).docs.forEach((doc: any) => {
                     const data = doc.data();
                     if (data.attendance) {
                         presentCount += data.attendance.filter((a: any) => a.status === 'present').length;
                     }
                 });
 
-                const totalRecords = recordsSnap.size;
-                const passedCount = recordsSnap.docs.filter(doc => {
-                    const grade = doc.data().grade;
+                const totalRecords = (recordsSnap as any).size;
+                const passedCount = (recordsSnap as any).docs.filter((doc: any) => {
+                    const data = doc.data();
+                    const grade = data.grade;
                     return grade && grade !== 'F' && grade !== 'পায়নী';
                 }).length;
 
                 setStats({ 
                     students: totalStudents, 
-                    teachers: tSnap.size,
+                    teachers: (tSnap as any).size,
                     attendanceRate: totalStudents > 0 ? (presentCount / totalStudents) * 100 : 0,
                     passRate: totalRecords > 0 ? (passedCount / totalRecords) * 100 : 0
                 });
@@ -251,7 +337,7 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex flex-col font-kalpurush bg-[#F8FAFF] text-slate-900 overflow-x-hidden">
             
-            {/* Header / Nav - Styled like the main dashboard header */}
+            {/* Header / Nav */}
             <header className="sticky top-0 z-[100] w-full h-16 md:h-24 bg-primary flex items-center justify-between px-4 sm:px-12 shadow-md">
                 <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
                     <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0 rounded-full border-2 border-white/20 p-0.5 bg-white shadow-md">
@@ -273,19 +359,18 @@ export default function LoginPage() {
 
             <main className="flex-1 flex flex-col lg:flex-row">
                 
-                {/* Left Side: Welcome & Quick Links */}
+                {/* Left Side: Welcome & Stats */}
                 <section className="flex-1 p-4 sm:p-8 lg:p-16 flex flex-col justify-start pt-2 space-y-4 relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
                     </div>
 
-                    <div className="space-y-2 relative z-10">
-                        <h2 className="text-2xl sm:text-4xl font-black leading-tight text-slate-900 tracking-tight">
-                            সৃজনশীল শিক্ষায় <br />
-                            <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
+                    <div className="space-y-1 relative z-10">
+                        <h2 className="text-xl sm:text-2xl font-black leading-tight text-slate-900 tracking-tight">
+                            সৃজনশীল শিক্ষায় <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
                         </h2>
-                        <p className="text-sm sm:text-base font-bold text-slate-600 max-w-2xl leading-relaxed">
+                        <p className="text-xs sm:text-sm font-bold text-slate-600 max-w-2xl leading-relaxed">
                             {schoolInfo.name} এর কেন্দ্রীয় ডিজিটাল ম্যানেজমেন্ট পোর্টালে আপনাকে স্বাগতম। আধুনিক শিক্ষা ও প্রশাসনিক কাজে স্বচ্ছতা নিশ্চিত করতে আমাদের এই ডিজিটাল উদ্যোগ।
                         </p>
                     </div>
@@ -294,69 +379,70 @@ export default function LoginPage() {
                         <Button 
                             variant="outline" 
                             size="lg" 
-                            className="h-12 px-6 rounded-2xl border-2 border-primary/30 text-primary font-black text-sm bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
+                            className="h-10 px-6 rounded-xl border-2 border-primary/30 text-primary font-black text-xs bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
                             onClick={() => setIsSearchOpen(true)}
                         >
-                            <BookOpen className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform" />
+                            <BookOpen className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
                             ফলাফল অনুসন্ধান
                         </Button>
                         <Link href="/admission">
                             <Button 
                                 variant="outline" 
                                 size="lg" 
-                                className="h-12 px-6 rounded-2xl border-2 border-emerald-300 text-emerald-700 font-black text-sm bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
+                                className="h-10 px-6 rounded-xl border-2 border-emerald-300 text-emerald-700 font-black text-xs bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
                             >
-                                <UserPlus className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform" />
+                                <UserPlus className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
                                 অনলাইন ভর্তি
                             </Button>
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><CheckCircle2 className="h-4 w-4" /></div>
-                            <span className="font-bold text-slate-700 text-sm">ডিজিটাল হাজিরা</span>
+                    <div className="flex flex-wrap gap-4 relative z-10 pt-1">
+                        <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><CheckCircle2 className="h-3 w-3" /></div>
+                            <span className="font-bold text-slate-700 text-xs">ডিজিটাল হাজিরা</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><ShieldCheck className="h-4 w-4" /></div>
-                            <span className="font-bold text-slate-700 text-sm">নিরাপদ তথ্যভাণ্ডার</span>
+                        <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><ShieldCheck className="h-3 w-3" /></div>
+                            <span className="font-bold text-slate-700 text-xs">নিরাপদ তথ্যভাণ্ডার</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><TrendingUp className="h-4 w-4" /></div>
-                            <span className="font-bold text-slate-700 text-sm">স্বচ্ছ হিসাব শাখা</span>
+                        <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><TrendingUp className="h-3 w-3" /></div>
+                            <span className="font-bold text-slate-700 text-xs">স্বচ্ছ হিসাব শাখা</span>
                         </div>
                     </div>
 
-                    {/* Live Stats Row - Horizontal layout */}
+                    {/* Live Stats Board */}
                     <div className="w-full space-y-4 pt-2 relative z-10">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                            <GalleryCard />
                             <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group">
                                 <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                     <Users className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
-                                <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">মোট শিক্ষার্থী</p>
+                                <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">শিক্ষার্থী</p>
                             </div>
                             <div className="bg-white border-2 border-emerald-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-emerald-300 group">
                                 <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                                     <GraduationCap className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
-                                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">মোট শিক্ষক</p>
+                                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">শিক্ষক</p>
                             </div>
                             <div className="bg-white border-2 border-blue-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-blue-300 group">
                                 <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                     <CalendarCheck className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
-                                <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতির হার</p>
+                                <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতি</p>
                             </div>
                             <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group">
                                 <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                                     <Trophy className="h-5 w-5" />
                                 </div>
                                 <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
-                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাসের হার (SSC)</p>
+                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাস (SSC)</p>
                             </div>
                         </div>
                     </div>
@@ -561,7 +647,7 @@ export default function LoginPage() {
                         {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-3" />}
                         <h1 className="text-4xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
                         <p className="text-lg font-bold text-slate-700">{schoolInfo.address}</p>
-                        <div className="mt-4 inline-block bg-primary text-white text-white px-10 py-1.5 rounded-full font-black text-xl shadow-lg">ফলাফল বিবরণী (সামারি)</div>
+                        <div className="mt-4 inline-block bg-primary text-white px-10 py-1.5 rounded-full font-black text-xl shadow-lg">ফলাফল বিবরণী (সামারি)</div>
                     </header>
 
                     <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-10 text-lg font-bold bg-slate-50 p-6 border-2 rounded-[32px]">

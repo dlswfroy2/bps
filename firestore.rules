@@ -150,8 +150,8 @@ service cloud.firestore {
     }
 
     match /publicExamRecords/{id} {
-      allow read: if isAuthed();
-      allow write: if isAuthed() && (hasPermission('manage:results') || isAdmin());
+      allow read: if isAuthed() && (hasPermission('view:public-records') || isAdmin());
+      allow write: if isAuthed() && (hasPermission('manage:public-records') || isAdmin());
       allow delete: if isAdmin();
     }
   }

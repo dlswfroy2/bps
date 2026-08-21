@@ -221,12 +221,12 @@ export default function LoginPage() {
             {/* Header / Nav */}
             <header className="sticky top-0 z-[100] w-full h-20 bg-white/80 backdrop-blur-md border-b-2 border-primary/5 flex items-center justify-between px-4 sm:px-12">
                 <div className="flex items-center gap-3">
-                    <div className="relative h-12 w-12 rounded-full border-2 border-primary/20 p-0.5 bg-white shadow-md">
+                    <div className="relative h-16 w-16 rounded-full border-2 border-primary/20 p-0.5 bg-white shadow-md">
                         {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-full" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain p-1" />}
                     </div>
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black text-primary leading-none">{schoolInfo.name}</h1>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Digital Management System</p>
+                        <h1 className="text-2xl sm:text-4xl font-black text-primary leading-none">{schoolInfo.name}</h1>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Digital Management Portal</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -242,7 +242,7 @@ export default function LoginPage() {
             <main className="flex-1 flex flex-col lg:flex-row">
                 
                 {/* Left Side: Welcome & Quick Links */}
-                <section className="flex-1 p-6 sm:p-12 lg:p-20 flex flex-col justify-center space-y-10 relative">
+                <section className="flex-1 p-6 sm:p-12 lg:p-20 flex flex-col justify-start pt-10 sm:pt-16 lg:pt-24 space-y-10 relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />

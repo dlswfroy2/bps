@@ -242,65 +242,96 @@ export default function LoginPage() {
             <main className="flex-1 flex flex-col lg:flex-row">
                 
                 {/* Left Side: Welcome & Quick Links */}
-                <section className="flex-1 p-6 sm:p-12 lg:p-20 flex flex-col justify-start pt-2 sm:pt-4 lg:pt-6 space-y-6 relative">
+                <section className="flex-1 p-4 sm:p-8 lg:p-16 flex flex-col justify-start pt-0 space-y-4 relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
                     </div>
 
-                    <div className="space-y-6 relative z-10">
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none font-black text-sm px-5 py-1.5 rounded-full">
-                            <Sparkles className="h-4 w-4 mr-2" /> আমাদের স্বাগতম
-                        </Badge>
+                    <div className="space-y-4 relative z-10">
                         <h2 className="text-4xl sm:text-6xl font-black leading-[1.1] text-slate-900 tracking-tight">
                             সৃজনশীল শিক্ষায় <br />
                             <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
                         </h2>
-                        <p className="text-lg sm:text-xl font-bold text-slate-600 max-w-2xl leading-relaxed">
+                        <p className="text-base sm:text-lg font-bold text-slate-600 max-w-2xl leading-relaxed">
                             {schoolInfo.name} এর কেন্দ্রীয় ডিজিটাল ম্যানেজমেন্ট পোর্টালে আপনাকে স্বাগতম। আধুনিক শিক্ষা ও প্রশাসনিক কাজে স্বচ্ছতা নিশ্চিত করতে আমাদের এই ডিজিটাল উদ্যোগ।
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-4 relative z-10 pt-2">
+                    <div className="flex flex-wrap gap-3 relative z-10">
                         <Button 
                             variant="outline" 
                             size="lg" 
-                            className="h-16 px-10 rounded-2xl border-2 border-primary/30 text-primary font-black text-lg bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
+                            className="h-14 px-8 rounded-2xl border-2 border-primary/30 text-primary font-black text-base bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
                             onClick={() => setIsSearchOpen(true)}
                         >
-                            <BookOpen className="h-6 w-6 mr-3 group-hover:scale-110 transition-transform" />
-                            ফলাফল দেখুন
+                            <BookOpen className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform" />
+                            ফলাফল অনুসন্ধান
                         </Button>
                         <Link href="/admission">
                             <Button 
                                 variant="outline" 
                                 size="lg" 
-                                className="h-16 px-10 rounded-2xl border-2 border-emerald-300 text-emerald-700 font-black text-lg bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
+                                className="h-14 px-8 rounded-2xl border-2 border-emerald-300 text-emerald-700 font-black text-base bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
                             >
-                                <UserPlus className="h-6 w-6 mr-3 group-hover:scale-110 transition-transform" />
+                                <UserPlus className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform" />
                                 অনলাইন ভর্তি
                             </Button>
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 relative z-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><CheckCircle2 className="h-5 w-5" /></div>
-                            <span className="font-bold text-slate-700">ডিজিটাল হাজিরা</span>
+                            <div className="h-8 w-8 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><CheckCircle2 className="h-4 w-4" /></div>
+                            <span className="font-bold text-slate-700 text-sm">ডিজিটাল হাজিরা</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><ShieldCheck className="h-5 w-5" /></div>
-                            <span className="font-bold text-slate-700">নিরাপদ তথ্যভাণ্ডার</span>
+                            <div className="h-8 w-8 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><ShieldCheck className="h-4 w-4" /></div>
+                            <span className="font-bold text-slate-700 text-sm">নিরাপদ তথ্যভাণ্ডার</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><TrendingUp className="h-5 w-5" /></div>
-                            <span className="font-bold text-slate-700">স্বচ্ছ হিসাব শাখা</span>
+                            <div className="h-8 w-8 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><TrendingUp className="h-4 w-4" /></div>
+                            <span className="font-bold text-slate-700 text-sm">স্বচ্ছ হিসাব শাখা</span>
+                        </div>
+                    </div>
+
+                    {/* Live Stats Row - Moved here from right side */}
+                    <div className="w-full space-y-4 pt-2 relative z-10">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group">
+                                <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    <Users className="h-5 w-5" />
+                                </div>
+                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
+                                <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">মোট শিক্ষার্থী</p>
+                            </div>
+                            <div className="bg-white border-2 border-emerald-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-emerald-300 group">
+                                <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                    <GraduationCap className="h-5 w-5" />
+                                </div>
+                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
+                                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">মোট শিক্ষক</p>
+                            </div>
+                            <div className="bg-white border-2 border-blue-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-blue-300 group">
+                                <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                    <CalendarCheck className="h-5 w-5" />
+                                </div>
+                                <p className="text-2xl font-black text-slate-900">৯৬%</p>
+                                <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতির হার</p>
+                            </div>
+                            <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group">
+                                <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                                    <Trophy className="h-5 w-5" />
+                                </div>
+                                <p className="text-2xl font-black text-slate-900">১০০%</p>
+                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাসের হার</p>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                {/* Right Side: Auth Form & Live Stats */}
-                <section className="w-full lg:w-[480px] bg-white border-l-2 border-primary/5 p-6 sm:p-12 flex flex-col gap-10 items-center justify-center shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
+                {/* Right Side: Auth Form */}
+                <section className="w-full lg:w-[480px] bg-white border-l-2 border-primary/5 p-6 sm:p-12 flex flex-col items-center justify-center shadow-[-20px_0_40px_rgba(0,0,0,0.02)]">
                     
                     {/* Login Card */}
                     <Card className="w-full shadow-2xl border-2 border-primary/20 rounded-[32px] overflow-hidden bg-white">
@@ -347,44 +378,6 @@ export default function LoginPage() {
                             </Tabs>
                         </CardContent>
                     </Card>
-
-                    {/* Live Stats Grid */}
-                    <div className="w-full space-y-4">
-                        <div className="flex items-center gap-2 mb-4 px-2">
-                            <TrendingUp className="h-5 w-5 text-primary" />
-                            <h3 className="font-black text-lg text-slate-800">লাইভ আপডেট</h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group">
-                                <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                                    <Users className="h-5 w-5" />
-                                </div>
-                                <p className="text-3xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
-                                <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">মোট শিক্ষার্থী</p>
-                            </div>
-                            <div className="bg-white border-2 border-emerald-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-emerald-300 group">
-                                <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                                    <GraduationCap className="h-5 w-5" />
-                                </div>
-                                <p className="text-3xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
-                                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">মোট শিক্ষক</p>
-                            </div>
-                            <div className="bg-white border-2 border-blue-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-blue-300 group">
-                                <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                    <CalendarCheck className="h-5 w-5" />
-                                </div>
-                                <p className="text-3xl font-black text-slate-900">৯৬%</p>
-                                <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতির হার</p>
-                            </div>
-                            <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group">
-                                <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                                    <Trophy className="h-5 w-5" />
-                                </div>
-                                <p className="text-3xl font-black text-slate-900">১০০%</p>
-                                <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাসের হার</p>
-                            </div>
-                        </div>
-                    </div>
                 </section>
             </main>
 

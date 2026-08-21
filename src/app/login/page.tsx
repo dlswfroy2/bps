@@ -15,7 +15,7 @@ import type { UserRole } from '@/lib/user';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { 
-    Loader2, Search, BookOpen, Printer, Star, User, Info, 
+    Loader2, Search, BookOpen, Printer, User, Info, 
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     LayoutDashboard, UserPlus, Bell, MousePointer2, ChevronRight,
     TrendingUp, ShieldCheck, Heart, Sparkles, MapPin, Phone, Mail,
@@ -107,7 +107,12 @@ export default function LoginPage() {
     const [searchResult, setSearchResult] = useState<StudentProcessedResult | null>(null);
 
     // Dynamic Stats States
-    const [stats, setStats] = useState({ students: 0, teachers: 0 });
+    const [stats, setStats] = useState({ 
+        students: 0, 
+        teachers: 0,
+        attendanceRate: 0,
+        passRate: 0
+    });
 
     useEffect(() => {
         if (!loading && user) {
@@ -121,17 +126,44 @@ export default function LoginPage() {
         }
     }, [db, searchYear]);
 
-    // Fetch simple public stats
+    // Fetch live stats
     useEffect(() => {
         if (!db) return;
         const fetchStats = async () => {
             try {
-                const [sSnap, tSnap] = await Promise.all([
-                    getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear), limit(500))),
-                    getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher')))
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                
+                const [sSnap, tSnap, attSnap, recordsSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear))),
+                    getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher'))),
+                    getDocs(query(collection(db, 'attendance'), where('academicYear', '==', globalYear), where('date', '==', todayStr))),
+                    getDocs(query(collection(db, 'publicExamRecords'), where('academicYear', '==', globalYear)))
                 ]);
-                setStats({ students: sSnap.size, teachers: tSnap.size });
-            } catch (e) {}
+
+                const totalStudents = sSnap.size;
+                let presentCount = 0;
+                attSnap.docs.forEach(doc => {
+                    const data = doc.data();
+                    if (data.attendance) {
+                        presentCount += data.attendance.filter((a: any) => a.status === 'present').length;
+                    }
+                });
+
+                const totalRecords = recordsSnap.size;
+                const passedCount = recordsSnap.docs.filter(doc => {
+                    const grade = doc.data().grade;
+                    return grade && grade !== 'F' && grade !== 'পায়নী';
+                }).length;
+
+                setStats({ 
+                    students: totalStudents, 
+                    teachers: tSnap.size,
+                    attendanceRate: totalStudents > 0 ? (presentCount / totalStudents) * 100 : 0,
+                    passRate: totalRecords > 0 ? (passedCount / totalRecords) * 100 : 0
+                });
+            } catch (e) {
+                console.error("Live Stats Error:", e);
+            }
         };
         fetchStats();
     }, [db, globalYear]);
@@ -218,42 +250,41 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex flex-col font-kalpurush bg-[#F8FAFF] text-slate-900 overflow-x-hidden">
             
-            {/* Header / Nav */}
-            <header className="sticky top-0 z-[100] w-full h-20 bg-white/80 backdrop-blur-md border-b-2 border-primary/5 flex items-center justify-between px-4 sm:px-12">
-                <div className="flex items-center gap-3">
-                    <div className="relative h-16 w-16 rounded-full border-2 border-primary/20 p-0.5 bg-white shadow-md">
+            {/* Header / Nav - Styled like the main dashboard header */}
+            <header className="sticky top-0 z-[100] w-full h-16 md:h-24 bg-primary flex items-center justify-between px-4 sm:px-12 shadow-md">
+                <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+                    <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0 rounded-full border-2 border-white/20 p-0.5 bg-white shadow-md">
                         {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-full" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain p-1" />}
                     </div>
                     <div>
-                        <h1 className="text-2xl sm:text-4xl font-black text-primary leading-none">{schoolInfo.name}</h1>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Digital Management Portal</p>
+                        <h1 className="text-xl sm:text-2xl md:text-[40px] font-black text-white leading-tight tracking-tight md:[text-shadow:1px_1px_0px_#000,2px_2px_4px_rgba(0,0,0,0.5)]">
+                            {schoolInfo.name}
+                        </h1>
+                        <p className="text-[10px] md:text-xs font-bold text-white/80 uppercase tracking-widest mt-0.5">Digital Management Portal</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="hidden sm:flex border-primary/20 text-primary font-black px-4 py-1.5 h-auto text-sm shadow-sm bg-primary/5">
+                    <Badge variant="outline" className="hidden sm:flex border-white/20 text-white font-black px-4 py-1.5 h-auto text-sm shadow-sm bg-white/5">
                         সেশন: {toBengaliNumber(globalYear)}
                     </Badge>
-                    <Button variant="default" className="font-black h-11 px-8 rounded-xl shadow-xl shadow-primary/20 hidden sm:flex">
-                        শিক্ষক লগইন
-                    </Button>
                 </div>
             </header>
 
             <main className="flex-1 flex flex-col lg:flex-row">
                 
                 {/* Left Side: Welcome & Quick Links */}
-                <section className="flex-1 p-4 sm:p-8 lg:p-16 flex flex-col justify-start pt-0 space-y-4 relative">
+                <section className="flex-1 p-4 sm:p-8 lg:p-16 flex flex-col justify-start pt-2 space-y-4 relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
                     </div>
 
-                    <div className="space-y-4 relative z-10">
-                        <h2 className="text-4xl sm:text-6xl font-black leading-[1.1] text-slate-900 tracking-tight">
+                    <div className="space-y-2 relative z-10">
+                        <h2 className="text-2xl sm:text-4xl font-black leading-tight text-slate-900 tracking-tight">
                             সৃজনশীল শিক্ষায় <br />
                             <span className="text-primary italic">এক ধাপ এগিয়ে...</span>
                         </h2>
-                        <p className="text-base sm:text-lg font-bold text-slate-600 max-w-2xl leading-relaxed">
+                        <p className="text-sm sm:text-base font-bold text-slate-600 max-w-2xl leading-relaxed">
                             {schoolInfo.name} এর কেন্দ্রীয় ডিজিটাল ম্যানেজমেন্ট পোর্টালে আপনাকে স্বাগতম। আধুনিক শিক্ষা ও প্রশাসনিক কাজে স্বচ্ছতা নিশ্চিত করতে আমাদের এই ডিজিটাল উদ্যোগ।
                         </p>
                     </div>
@@ -262,7 +293,7 @@ export default function LoginPage() {
                         <Button 
                             variant="outline" 
                             size="lg" 
-                            className="h-14 px-8 rounded-2xl border-2 border-primary/30 text-primary font-black text-base bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
+                            className="h-12 px-6 rounded-2xl border-2 border-primary/30 text-primary font-black text-sm bg-white shadow-xl hover:bg-primary hover:text-white transition-all duration-500 group"
                             onClick={() => setIsSearchOpen(true)}
                         >
                             <BookOpen className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform" />
@@ -272,7 +303,7 @@ export default function LoginPage() {
                             <Button 
                                 variant="outline" 
                                 size="lg" 
-                                className="h-14 px-8 rounded-2xl border-2 border-emerald-300 text-emerald-700 font-black text-base bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
+                                className="h-12 px-6 rounded-2xl border-2 border-emerald-300 text-emerald-700 font-black text-sm bg-white shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
                             >
                                 <UserPlus className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform" />
                                 অনলাইন ভর্তি
@@ -295,7 +326,7 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {/* Live Stats Row - Moved here from right side */}
+                    {/* Live Stats Row - Horizontal layout */}
                     <div className="w-full space-y-4 pt-2 relative z-10">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div className="bg-white border-2 border-indigo-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-indigo-300 group">
@@ -316,14 +347,14 @@ export default function LoginPage() {
                                 <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                     <CalendarCheck className="h-5 w-5" />
                                 </div>
-                                <p className="text-2xl font-black text-slate-900">৯৬%</p>
+                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
                                 <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতির হার</p>
                             </div>
                             <div className="bg-white border-2 border-rose-100 p-4 rounded-3xl shadow-sm hover:shadow-md transition-all hover:border-rose-300 group">
                                 <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                                     <Trophy className="h-5 w-5" />
                                 </div>
-                                <p className="text-2xl font-black text-slate-900">১০০%</p>
+                                <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
                                 <p className="text-[10px] font-black text-rose-600 uppercase mt-1">পাসের হার</p>
                             </div>
                         </div>
@@ -336,7 +367,7 @@ export default function LoginPage() {
                     {/* Login Card */}
                     <Card className="w-full shadow-2xl border-2 border-primary/20 rounded-[32px] overflow-hidden bg-white">
                         <CardHeader className="bg-primary p-8 text-white text-center">
-                            <CardTitle className="text-2xl font-black">প্র প্রশাসনিক লগইন</CardTitle>
+                            <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
                             <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
                         </CardHeader>
                         <CardContent className="p-8">
@@ -451,10 +482,9 @@ export default function LoginPage() {
                     ) : (
                         <div className="flex flex-col bg-white animate-in zoom-in duration-300">
                             <DialogHeader className="p-8 bg-primary text-white flex flex-row items-center gap-6">
-                                <Avatar className="h-24 w-24 border-4 border-white/30 shadow-xl overflow-hidden shrink-0">
-                                    <AvatarImage src={sanitizePhotoUrl(searchResult.student.photoUrl, searchResult.student.gender) || getStudentPlaceholderImage(searchResult.student.gender)} className="object-cover h-full w-full" />
-                                    <AvatarFallback className="text-2xl font-black bg-white/20">S</AvatarFallback>
-                                </Avatar>
+                                <div className="h-24 w-24 border-4 border-white/30 shadow-xl overflow-hidden shrink-0 rounded-full">
+                                    <img src={sanitizePhotoUrl(searchResult.student.photoUrl, searchResult.student.gender) || getStudentPlaceholderImage(searchResult.student.gender)} className="object-cover h-full w-full" alt="avatar" />
+                                </div>
                                 <div className="overflow-hidden">
                                     <DialogTitle className="text-3xl font-black truncate">{searchResult.student.studentNameBn}</DialogTitle>
                                     <DialogDescription className="text-white/80 font-bold text-lg mt-1">
@@ -582,14 +612,4 @@ export default function LoginPage() {
             )}
         </div>
     );
-}
-
-function Avatar({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <div className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)}>{children}</div>;
-}
-function AvatarImage({ src, className }: { src?: string, className?: string }) {
-    return src ? <img src={src} className={cn("aspect-square h-full w-full", className)} alt="avatar" /> : null;
-}
-function AvatarFallback({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <div className={cn("flex h-full w-full items-center justify-center rounded-full bg-muted", className)}>{children}</div>;
 }

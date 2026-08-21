@@ -242,7 +242,7 @@ export default function LoginPage() {
             <main className="flex-1 flex flex-col lg:flex-row">
                 
                 {/* Left Side: Welcome & Quick Links */}
-                <section className="flex-1 p-6 sm:p-12 lg:p-20 flex flex-col justify-start pt-10 sm:pt-16 lg:pt-24 space-y-10 relative">
+                <section className="flex-1 p-6 sm:p-12 lg:p-20 flex flex-col justify-start pt-2 sm:pt-4 lg:pt-6 space-y-6 relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-400 rounded-full blur-[100px]" />
@@ -261,7 +261,7 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-4 relative z-10 pt-4">
+                    <div className="flex flex-wrap gap-4 relative z-10 pt-2">
                         <Button 
                             variant="outline" 
                             size="lg" 
@@ -283,7 +283,7 @@ export default function LoginPage() {
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 relative z-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 relative z-10">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center text-primary"><CheckCircle2 className="h-5 w-5" /></div>
                             <span className="font-bold text-slate-700">ডিজিটাল হাজিরা</span>
@@ -537,7 +537,7 @@ export default function LoginPage() {
                         {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-3" />}
                         <h1 className="text-4xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
                         <p className="text-lg font-bold text-slate-700">{schoolInfo.address}</p>
-                        <div className="mt-4 inline-block bg-primary text-white px-10 py-1.5 rounded-full font-black text-xl shadow-lg">ফলাফল বিবরণী (সামারি)</div>
+                        <div className="mt-4 inline-block bg-primary text-white text-white px-10 py-1.5 rounded-full font-black text-xl shadow-lg">ফলাফল বিবরণী (সামারি)</div>
                     </header>
 
                     <div className="grid grid-cols-2 gap-x-10 gap-y-3 mb-10 text-lg font-bold bg-slate-50 p-6 border-2 rounded-[32px]">

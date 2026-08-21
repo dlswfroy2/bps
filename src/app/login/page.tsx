@@ -506,7 +506,7 @@ export default function LoginPage() {
 
                     {/* Right Side: Auth Form */}
                     <section className="w-full lg:w-[480px] p-6 sm:p-12 flex flex-col items-center justify-center">
-                        <Card className="w-full shadow-2xl border-4 border-white/20 rounded-[32px] overflow-hidden bg-white/95 backdrop-blur-xl">
+                        <Card className="w-full shadow-2xl border-4 border-white/20 rounded-[32px] overflow-hidden bg-white">
                             <CardHeader className="bg-primary p-8 text-white text-center">
                                 <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
                                 <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
@@ -753,10 +753,4 @@ export default function LoginPage() {
             )}
         </div>
     );
-}
-
-function toBengaliNumberForStats(str: string | number) {
-  if (!str && str !== 0) return '';
-  const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-  return String(str).replace(/[0-9]/g, (w) => bengaliDigits[parseInt(w, 10)]);
 }

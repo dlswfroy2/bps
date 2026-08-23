@@ -92,108 +92,115 @@ export const MoneyReceipt = ({ collection, student, schoolInfo }: MoneyReceiptPr
 শ্রেণি: ${classNamesMap[student.className] || student.className}
 রোল: ${student.roll}
 মোট টাকা: ${collection.totalAmount} ৳
+আদায়কারী: ${collection.collectorName || 'অফিস'}
 তারিখ: ${format(collection.collectionDate, 'dd/MM/yyyy')}`;
 
     return (
-        <div className="money-receipt font-kalpurush w-[148mm] h-[210mm] p-6 bg-white text-black border-[10px] border-double border-emerald-900 relative overflow-hidden flex flex-col mx-auto my-2 shadow-none print:m-0 box-border">
+        <div className="money-receipt font-kalpurush w-[148mm] h-[210mm] p-3.5 sm:p-4 bg-white text-black border-[8px] border-double border-emerald-900 relative overflow-hidden flex flex-col mx-auto my-1 shadow-none print:m-0 box-border">
             {/* Background Watermark Pattern */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: 'radial-gradient(#064e3b 1px, transparent 1px)', backgroundSize: '12px 12px' }} />
             
             {/* Logo Watermark */}
             {schoolInfo.logoUrl && (
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none z-0">
-                    <Image src={schoolInfo.logoUrl} alt="Watermark" width={300} height={300} />
+                    <Image src={schoolInfo.logoUrl} alt="Watermark" width={260} height={260} />
                 </div>
             )}
 
-            <header className="relative z-10 flex items-center justify-between border-b-[4px] border-emerald-950 pb-4 mb-4">
-                <div className="flex items-center gap-3">
+            <header className="relative z-10 flex items-center justify-between border-b-[3px] border-emerald-950 pb-2 mb-2">
+                <div className="flex items-center gap-2.5">
                     {schoolInfo.logoUrl && (
-                        <div className="relative w-16 h-16 bg-white p-1 rounded-full shadow-md border-2 border-emerald-200">
-                            <Image src={schoolInfo.logoUrl} alt="Logo" width={64} height={64} className="object-contain rounded-full" />
+                        <div className="relative w-14 h-14 bg-white p-1 rounded-full shadow-md border-2 border-emerald-200 shrink-0">
+                            <Image src={schoolInfo.logoUrl} alt="Logo" width={56} height={56} className="object-contain rounded-full" />
                         </div>
                     )}
                     <div>
-                        <h1 className="text-[22px] font-black text-emerald-950 tracking-tighter leading-none mb-1">{schoolInfo.name}</h1>
-                        <p className="text-[12px] font-black text-slate-800 leading-tight">{schoolInfo.address} | EIIN: {toBengaliNumber(schoolInfo.eiin)}</p>
+                        <h1 className="text-[20px] font-black text-emerald-950 tracking-tighter leading-none mb-0.5">{schoolInfo.name}</h1>
+                        <p className="text-[11px] font-black text-slate-800 leading-tight">{schoolInfo.address} | EIIN: {toBengaliNumber(schoolInfo.eiin)}</p>
                     </div>
                 </div>
-                <div className="text-right flex flex-col items-end">
-                    <div className="bg-emerald-950 text-white border-2 border-emerald-900 rounded-xl px-5 py-1.5 mb-1 font-black uppercase text-[15px] shadow-sm whitespace-nowrap">
+                <div className="text-right flex flex-col items-end shrink-0">
+                    <div className="bg-emerald-950 text-white border-2 border-emerald-900 rounded-lg px-3.5 py-1 mb-1 font-black uppercase text-[13px] shadow-sm whitespace-nowrap">
                         টাকা আদায়ের রসিদ
                     </div>
-                    <p className="text-[13px] font-black text-slate-950 bg-slate-100 px-3 py-0.5 rounded border-2 border-slate-300">
+                    <p className="text-[12px] font-black text-slate-950 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-300">
                         তারিখ: <span className="text-blue-900 font-black">{toBengaliNumber(format(collection.collectionDate, 'dd/MM/yyyy', { locale: bn }))}</span>
                     </p>
-                    <p className="text-[11px] font-black text-slate-900 mt-1">রসিদ নং: <span className="uppercase text-emerald-800 font-black">{collection.id.slice(-6)}</span></p>
+                    <p className="text-[10px] font-black text-slate-900 mt-0.5">রসিদ নং: <span className="uppercase text-emerald-800 font-black">{collection.id.slice(-6)}</span></p>
                 </div>
             </header>
 
-            <main className="relative z-10 space-y-4 flex-grow flex flex-col">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[14px] font-black bg-slate-50/80 p-4 rounded-xl border-[2px] border-emerald-900/20 shadow-inner shrink-0">
-                    <div className="flex gap-2 border-b border-dashed border-emerald-300 pb-1"><span className="text-slate-700 w-24">শিক্ষার্থীর নাম:</span> <span className="text-emerald-950 font-black">{student.studentNameBn}</span></div>
-                    <div className="flex gap-2 border-b border-dashed border-emerald-300 pb-1"><span className="text-slate-700 w-20">আইডি:</span> <span className="text-blue-800 font-black">{toBengaliNumber(student.generatedId || '-')}</span></div>
-                    <div className="flex gap-2 border-b border-dashed border-emerald-300 pb-1"><span className="text-slate-700 w-24">শ্রেণি ও রোল:</span> <span className="text-emerald-950 font-black">{classNamesMap[student.className] || student.className} শ্রেণি, রোল- {toBengaliNumber(student.roll)}</span></div>
-                    <div className="flex gap-2 border-b border-dashed border-emerald-300 pb-1"><span className="text-slate-700 w-20">শিক্ষাবর্ষ:</span> <span className="text-emerald-950 font-black">{toBengaliNumber(student.academicYear)}</span></div>
+            <main className="relative z-10 space-y-2.5 flex-grow flex flex-col justify-between">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] font-black bg-slate-50/90 p-2.5 rounded-lg border border-emerald-900/20 shadow-inner shrink-0">
+                    <div className="flex gap-1.5 border-b border-dashed border-emerald-300 pb-0.5"><span className="text-slate-700 w-24">শিক্ষার্থীর নাম:</span> <span className="text-emerald-950 font-black">{student.studentNameBn}</span></div>
+                    <div className="flex gap-1.5 border-b border-dashed border-emerald-300 pb-0.5"><span className="text-slate-700 w-16">আইডি:</span> <span className="text-blue-800 font-black">{toBengaliNumber(student.generatedId || '-')}</span></div>
+                    <div className="flex gap-1.5 border-b border-dashed border-emerald-300 pb-0.5"><span className="text-slate-700 w-24">শ্রেণি ও রোল:</span> <span className="text-emerald-950 font-black">{classNamesMap[student.className] || student.className} শ্রেণি, রোল- {toBengaliNumber(student.roll)}</span></div>
+                    <div className="flex gap-1.5 border-b border-dashed border-emerald-300 pb-0.5"><span className="text-slate-700 w-16">শিক্ষাবর্ষ:</span> <span className="text-emerald-950 font-black">{toBengaliNumber(student.academicYear)}</span></div>
+                    <div className="flex gap-1.5 pt-0.5"><span className="text-slate-700 w-24">আদায়কারী:</span> <span className="text-emerald-950 font-black">{collection.collectorName || 'অফিস'}</span></div>
+                    <div className="flex gap-1.5 pt-0.5"><span className="text-slate-700 w-16">পদ্ধতি:</span> <span className="text-emerald-950 font-black">{collection.method === 'bank' ? 'ব্যাংক' : 'নগদ'}</span></div>
                 </div>
 
-                <div className="flex-grow flex flex-col overflow-hidden">
-                    <div className="border-[3px] border-emerald-950 rounded-xl overflow-hidden bg-white shadow-md flex-grow flex flex-col">
-                        <table className="w-full text-[13px] text-left border-collapse">
+                <div className="flex-grow flex flex-col overflow-hidden my-0.5">
+                    <div className="border-[2px] border-emerald-950 rounded-lg overflow-hidden bg-white shadow-sm flex-grow flex flex-col justify-between">
+                        <table className="w-full text-[12px] text-left border-collapse">
                             <thead>
-                                <tr className="bg-emerald-900 text-white border-b-2 border-emerald-950 h-9">
-                                    <th className="p-2 border-r border-emerald-800 font-black w-10 text-center">নং</th>
-                                    <th className="p-2 border-r border-emerald-800 font-black pl-4">আদায়ের খাত (Heads)</th>
-                                    <th className="p-2 font-black text-right pr-6">পরিমাণ (৳)</th>
+                                <tr className="bg-emerald-900 text-white border-b border-emerald-950 h-7">
+                                    <th className="p-1 border-r border-emerald-800 font-black w-8 text-center">নং</th>
+                                    <th className="p-1 border-r border-emerald-800 font-black pl-3">আদায়ের খাত (Heads)</th>
+                                    <th className="p-1 font-black text-right pr-4">পরিমাণ (৳)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {activeFees.map(([key, amount], i) => (
-                                    <tr key={key} className="border-b-[1px] border-slate-300 last:border-0 h-8">
-                                        <td className="p-1 border-r border-slate-300 text-center font-black">{toBengaliNumber(i + 1)}</td>
-                                        <td className="p-1 border-r border-slate-300 font-black text-slate-900 pl-4">{feeLabels[key] || key}</td>
-                                        <td className="p-1 text-right font-black pr-6 text-slate-950">{toBengaliNumber(amount as number)}</td>
+                                    <tr key={key} className="border-b border-slate-200 last:border-0 h-6">
+                                        <td className="p-0.5 border-r border-slate-200 text-center font-black">{toBengaliNumber(i + 1)}</td>
+                                        <td className="p-0.5 border-r border-slate-200 font-black text-slate-900 pl-3">{feeLabels[key] || key}</td>
+                                        <td className="p-0.5 text-right font-black pr-4 text-slate-950">{toBengaliNumber(amount as number)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                        <div className="mt-auto bg-emerald-50 border-t-[3px] border-emerald-950 p-2 flex justify-between items-center h-12">
-                            <span className="font-black text-[15px] pl-4 uppercase">Total Amount:</span>
-                            <span className="font-black text-[24px] pr-6 text-emerald-950 leading-none">{toBengaliNumber(collection.totalAmount)} ৳</span>
+                        <div className="mt-auto bg-emerald-50 border-t-[2px] border-emerald-950 px-3 py-1 flex justify-between items-center h-8">
+                            <span className="font-black text-[13px] uppercase">Total Amount:</span>
+                            <span className="font-black text-[20px] text-emerald-950 leading-none">{toBengaliNumber(collection.totalAmount)} ৳</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="space-y-4 shrink-0">
-                    <div className="text-[13px] font-black bg-emerald-50/50 p-3 rounded-xl border-2 border-dashed border-emerald-900/20">
-                        <p className="leading-relaxed flex flex-wrap gap-2 items-end">
+                <div className="space-y-2 shrink-0">
+                    <div className="text-[12px] font-black bg-emerald-50/50 p-2 rounded-lg border border-dashed border-emerald-900/30">
+                        <p className="leading-tight flex flex-wrap gap-1.5 items-end">
                             <span className="text-slate-800 shrink-0">কথায়:</span> 
-                            <span className="text-emerald-950 border-b-2 border-dotted border-slate-400 flex-grow min-w-[150px] px-2 italic font-black">
+                            <span className="text-emerald-950 border-b border-dotted border-slate-400 flex-grow min-w-[120px] px-1.5 italic font-black">
                                 {numberToBengaliWords(collection.totalAmount)} টাকা মাত্র।
                             </span>
                         </p>
-                        <p className="mt-2 text-[11px] text-slate-800 font-black leading-tight"><strong>বিবরণ:</strong> {collection.description || 'বিবিধ ফি আদায়'}</p>
+                        <p className="mt-1 text-[10.5px] text-slate-800 font-black leading-tight"><strong>বিবরণ:</strong> {collection.description || 'বিবিধ ফি আদায়'}</p>
                     </div>
 
-                    <div className="flex justify-between items-end pb-2">
-                        <div className="flex gap-8 items-end flex-1">
-                            <div className="text-center">
-                                <div className="h-10"></div>
-                                <div className="w-28 border-t-2 border-black pt-1 font-black text-[11px] text-emerald-950">আদায়কারীর স্বাক্ষর</div>
+                    <div className="flex justify-between items-end pt-1 pb-1">
+                        <div className="flex gap-4 items-end flex-1">
+                            <div className="text-center min-w-[90px]">
+                                <div className="h-6 flex flex-col justify-end items-center pb-0.5">
+                                    <span className="text-[10px] font-black text-emerald-950 leading-none">
+                                        {collection.collectorName || 'অফিস'}
+                                    </span>
+                                </div>
+                                <div className="w-24 border-t border-black pt-0.5 font-black text-[10px] text-emerald-950">আদায়কারীর স্বাক্ষর</div>
                             </div>
-                            <div className="text-center">
-                                <div className="h-10"></div>
-                                <div className="w-28 border-t-2 border-black pt-1 font-black text-[11px] text-emerald-950">প্রধান শিক্ষকের স্বাক্ষর</div>
+                            <div className="text-center min-w-[90px]">
+                                <div className="h-6"></div>
+                                <div className="w-24 border-t border-black pt-0.5 font-black text-[10px] text-emerald-950">প্রধান শিক্ষকের স্বাক্ষর</div>
                             </div>
-                            <div className="text-center">
-                                <div className="h-10"></div>
-                                <div className="w-28 border-t-2 border-black pt-1 font-black text-[11px] text-emerald-950">অভিভাবকের স্বাক্ষর</div>
+                            <div className="text-center min-w-[90px]">
+                                <div className="h-6"></div>
+                                <div className="w-24 border-t border-black pt-0.5 font-black text-[10px] text-emerald-950">অভিভাবকের স্বাক্ষর</div>
                             </div>
                         </div>
-                        <div className="p-1.5 border-[2px] border-emerald-900 bg-white rounded-lg shadow-sm shrink-0">
+                        <div className="p-1 border border-emerald-900 bg-white rounded-md shadow-sm shrink-0">
                             <QRCodeSVG 
                                 value={qrValue}
-                                size={85}
+                                size={64}
                                 level="M"
                                 includeMargin={false}
                             />
@@ -202,12 +209,12 @@ export const MoneyReceipt = ({ collection, student, schoolInfo }: MoneyReceiptPr
                 </div>
             </main>
 
-            <footer className="relative z-10 pt-2 mt-auto border-t-4 border-double border-emerald-900">
-                <div className="flex justify-between items-center px-2">
-                    <div className="text-left text-[9px] font-black text-slate-900">
+            <footer className="relative z-10 pt-1 mt-auto border-t-2 border-double border-emerald-900">
+                <div className="flex justify-between items-center px-1">
+                    <div className="text-left text-[8.5px] font-black text-slate-800">
                         জেনারেশন সময়: {toBengaliNumber(format(new Date(), 'pp', { locale: bn }))}
                     </div>
-                    <div className="text-right text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">
+                    <div className="text-right text-[8.5px] text-slate-500 font-black uppercase tracking-[0.15em]">
                         DIGITAL MANAGEMENT PORTAL | BPHS
                     </div>
                 </div>

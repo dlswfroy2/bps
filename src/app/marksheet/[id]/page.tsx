@@ -317,7 +317,7 @@ function MarksheetContent() {
                     </section>
 
                     {/* Table */}
-                    <section className="flex-grow overflow-hidden">
+                    <section className="flex-grow overflow-visible">
                         <table className="w-full border-collapse border-[1.5px] border-black text-[11px]">
                             <thead>
                                 <tr className="border-b-[1.5px] border-black bg-gray-100 font-bold">

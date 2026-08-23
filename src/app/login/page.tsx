@@ -242,10 +242,10 @@ export default function LoginPage() {
     });
 
     useEffect(() => {
-        if (!loading && user) {
+        if (!loading && !isLoadingAuth && user) {
             router.push('/');
         }
-    }, [user, loading, router]);
+    }, [user, loading, isLoadingAuth, router]);
 
     useEffect(() => {
         if (db && searchYear) {
@@ -404,7 +404,7 @@ export default function LoginPage() {
         } finally { setIsSearching(false); }
     };
 
-    if(loading || user) return null;
+    if(loading || (user && !isLoadingAuth)) return null;
 
     return (
         <div className="min-h-screen flex flex-col font-kalpurush bg-slate-900 text-slate-900 overflow-x-hidden">

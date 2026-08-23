@@ -9,18 +9,14 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handleError = (error: FirestorePermissionError) => {
-      console.error(error);
+      console.warn("Firestore Permission Warning:", error.message);
       toast({
         variant: 'destructive',
-        title: 'Firestore Permission Error',
+        title: 'অনুমতির সীমাবদ্ধতা (Permission Error)',
         description:
-          'দুঃখিত, আপনার এই কাজটি করার অনুমতি নেই। বিস্তারিত জানতে প্রধান শিক্ষকের সাথে যোগাযোগ করুন।',
-        duration: 9000,
+          'দুঃখিত, এই তথ্যে প্রবেশ করার জন্য আপনার অ্যাকাউন্টের প্রয়োজনীয় পারমিশন নেই।',
+        duration: 5000,
       });
-      // Throw the error to surface it to the Next.js development overlay
-      if (process.env.NODE_ENV === 'development') {
-        throw error;
-      }
     };
 
     errorEmitter.on('permission-error', handleError);

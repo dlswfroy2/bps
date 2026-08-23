@@ -132,12 +132,6 @@ export const getAttendanceForDate = async (db: Firestore, date: string, academic
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyAttendance));
     } catch (e: any) {
-        if (e.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: ATTENDANCE_COLLECTION,
-                operation: 'list',
-            } satisfies SecurityRuleContext));
-        }
         console.error("Error getting attendance for date:", e);
         return [];
     }

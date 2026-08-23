@@ -32,12 +32,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!auth || !db) return;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
+    let unsubscribeSnapshot: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
       setFirebaseUser(fbUser);
+
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
+
       if (fbUser) {
         const userDocRef = doc(db, 'users', fbUser.uid);
         
-        const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+        unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             const userData = userFromDoc(docSnap);
             if (!userData.permissions || userData.permissions.length === 0) {
@@ -47,21 +55,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
           } else {
             setUser(null);
+            setLoading(false);
           }
         }, (error) => {
             if (error.code === 'permission-denied') return;
             console.error("Auth snapshot error:", error);
             setLoading(false);
         });
-
-        return () => unsubscribeSnapshot();
       } else {
         setUser(null);
         setLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+      unsubscribeAuth();
+    };
   }, [auth, db]);
 
   const hasPermission = useCallback((permissionId: string): boolean => {

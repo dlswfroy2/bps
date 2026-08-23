@@ -63,12 +63,6 @@ export const getTransactions = async (db: Firestore, academicYear: string): Prom
         const querySnapshot = await getDocs(transactionsQuery);
         return querySnapshot.docs.map(transactionFromDoc);
     } catch (e: any) {
-        if (e.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: TRANSACTIONS_COLLECTION,
-                operation: 'list',
-            }));
-        }
         console.error("Error getting transactions:", e);
         return [];
     }

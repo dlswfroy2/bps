@@ -22,7 +22,7 @@ import {
     Search, Sparkles, Settings, ListTodo, List, XCircle, UserCheck, RefreshCw, Plus, AlertTriangle, Info, History
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/accordion";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { useFirestore } from '@/firebase';
 import { collection, onSnapshot, query, where, orderBy, FirestoreError, getDocs, limit, doc, writeBatch, serverTimestamp, Timestamp, QueryDocumentSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';

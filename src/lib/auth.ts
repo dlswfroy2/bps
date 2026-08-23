@@ -84,14 +84,16 @@ export async function signUp(email: string, password: string): Promise<{ success
     return { success: true, role: role };
 
   } catch (error: any) {
-    console.error("Signup error:", error);
     if (error.code === 'auth/email-already-in-use') {
-        return { success: false, error: 'এই ইমেইল দিয়ে ইতিমধ্যে একটি একাউন্ট তৈরি করা আছে।' };
+        return { success: false, error: 'এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা আছে। দয়া করে সরাসরি লগইন করুন।' };
     }
     if (error.code === 'auth/weak-password') {
         return { success: false, error: 'পাসওয়ার্ডটি অন্তত ৬ অক্ষরের হতে হবে।' };
     }
-    return { success: false, error: 'নিবন্ধন করা যায়নি। ' + (error.message || 'সার্ভার ত্রুটি।') };
+    if (error.code === 'auth/invalid-email') {
+        return { success: false, error: 'অনুগ্রহ করে সঠিক ইমেইল এড্রেস লিখুন।' };
+    }
+    return { success: false, error: error.message || 'নিবন্ধন সম্পন্ন করা সম্ভব হয়নি।' };
   }
 }
 
@@ -123,12 +125,11 @@ export async function signIn(email: string, password: string, role: UserRole): P
 
     return { success: true };
   } catch (error: any) {
-     console.error("Signin error:", error);
      const authErrorCodes = ['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-email', 'auth/user-disabled'];
      if (authErrorCodes.includes(error.code)) {
-      return { success: false, error: 'আপনার ইমেইল অথবা পাসওয়ার্ড ভুল।' };
+      return { success: false, error: 'আপনার ইমেইল অথবা পাসওয়ার্ডটি সঠিক নয়।' };
     }
-    return { success: false, error: 'লগইন করা যায়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন। ' + error.message };
+    return { success: false, error: error.message || 'লগইন করা যায়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।' };
   }
 }
 

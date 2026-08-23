@@ -542,7 +542,7 @@ const MonthlyAttendanceGrid = ({
                                                     <div className="flex gap-0 h-8 w-24">
                                                         <button
                                                             id={`present-${student.id}`}
-                                                            ref={el => inputRefs.current[`present-${student.id}`] = el}
+                                                            ref={el => { inputRefs.current[`present-${student.id}`] = el; }}
                                                             className={cn(
                                                                 "flex-1 h-full text-base font-black transition-all border-r border-blue-200",
                                                                 status === 'present' ? "bg-emerald-600 text-white shadow-inner" : "hover:bg-emerald-50 text-emerald-600"
@@ -554,7 +554,7 @@ const MonthlyAttendanceGrid = ({
                                                         </button>
                                                         <button
                                                             id={`absent-${student.id}`}
-                                                            ref={el => inputRefs.current[`absent-${student.id}`] = el}
+                                                            ref={el => { inputRefs.current[`absent-${student.id}`] = el; }}
                                                             className={cn(
                                                                 "flex-1 h-full text-base font-black transition-all",
                                                                 status === 'absent' ? "bg-rose-600 text-white shadow-inner" : "hover:bg-rose-50 text-rose-600"
@@ -1382,7 +1382,7 @@ const AbsentStudentListTab = ({ allStudents }: { allStudents: Student[] }) => {
                     if (att?.status === 'absent') count++;
                 });
                 return { student, count };
-            }).filter(res => res.count > 0).sort((a, b) => (Number(a.student.roll) || 0) - (Number(b.roll) || 0));
+            }).filter(res => res.count > 0).sort((a, b) => (Number(a.student.roll) || 0) - (Number(b.student.roll) || 0));
 
             setAbsentData(results);
         } catch (e) {

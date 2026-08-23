@@ -44,12 +44,6 @@ export const getStaffAttendanceByDate = async (db: Firestore, date: string): Pro
         }
         return undefined;
     } catch (e: any) {
-        if (e.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: COLLECTION,
-                operation: 'get',
-            }));
-        }
         console.error("Error getting staff attendance:", e);
         return undefined;
     }
@@ -100,12 +94,6 @@ export const getStaffAttendanceForRange = async (db: Firestore, startDate: strin
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffDailyAttendance));
     } catch (e: any) {
-        if (e.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: COLLECTION,
-                operation: 'list',
-            }));
-        }
         console.error("Error getting staff attendance range:", e);
         return [];
     }

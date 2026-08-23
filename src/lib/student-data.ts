@@ -78,6 +78,7 @@ export type Student = {
   feeCategory?: 'general' | 'half-free' | 'full-free';
   village?: string;
   address?: string;
+  _promoStatus?: string | boolean;
   // Firestore specific fields
   createdAt?: Timestamp;
   updatedAt?: Timestamp;

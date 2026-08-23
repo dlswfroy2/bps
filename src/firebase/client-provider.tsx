@@ -1,7 +1,7 @@
 'use client';
 import { ReactNode, useMemo, useEffect, useState } from 'react';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { initializeFirestore, Firestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from 'firebase/firestore';
+import { initializeFirestore, Firestore, persistentLocalCache, persistentSingleTabManager, setLogLevel } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
@@ -36,12 +36,12 @@ function getFirebaseInstances() {
   if (!window.__FIREBASE_FIRESTORE__) {
     /**
      * Modern Firestore Initialization (SDK v11+)
-     * Using localCache instead of deprecated enableIndexedDbPersistence to prevent
-     * INTERNAL ASSERTION FAILED errors in workstation environments.
+     * Using persistentSingleTabManager to prevent INTERNAL ASSERTION FAILED errors
+     * caused by multi-tab sync race conditions during auth state changes.
      */
     window.__FIREBASE_FIRESTORE__ = initializeFirestore(app, {
       localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
+        tabManager: persistentSingleTabManager({}),
       }),
       experimentalForceLongPolling: true, // Required for Cloud Workstations and stability
     });

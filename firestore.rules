@@ -9,22 +9,22 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasUserData() {
+      return isAuthed() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      return isAuthed() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        getUserData().role == 'admin';
+      return hasUserData() && getUserData().role == 'admin';
     }
 
     function hasPermission(permission) {
-      if (!isAuthed()) return false;
-      let userData = getUserData();
-      return userData != null && (
-        userData.role == 'admin' || 
-        (permission in userData.get('permissions', []))
+      return hasUserData() && (
+        getUserData().role == 'admin' || 
+        (permission in getUserData().get('permissions', []))
       );
     }
 
@@ -110,7 +110,7 @@ service cloud.firestore {
     }
 
     match /staffAttendance/{id} {
-      allow read: if isAuthed();
+      allow read: if true; // Allow public read for landing page leave stats
       allow write: if isAuthed() && (hasPermission('manage:staff-attendance') || isAdmin());
     }
 

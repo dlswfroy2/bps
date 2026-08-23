@@ -492,9 +492,9 @@ export default function LoginPage() {
                                         <CardContent className="p-8">
                                             <Tabs defaultValue="teacher-login" className="w-full">
                                                 <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-6 h-11 rounded-xl">
-                                                    <TabsTrigger value="teacher-login" className="font-black text-xs rounded-lg">শিক্ষক</TabsTrigger>
-                                                    <TabsTrigger value="admin-login" className="font-black text-xs rounded-lg">এডমিন</TabsTrigger>
-                                                    <TabsTrigger value="signup" className="font-black text-xs rounded-lg">নিবন্ধন</TabsTrigger>
+                                                    <TabsTrigger value="teacher-login" className="font-black text-xs rounded-lg data-[state=active]:bg-red-600 data-[state=active]:text-white">শিক্ষক</TabsTrigger>
+                                                    <TabsTrigger value="admin-login" className="font-black text-xs rounded-lg data-[state=active]:bg-red-600 data-[state=active]:text-white">এডমিন</TabsTrigger>
+                                                    <TabsTrigger value="signup" className="font-black text-xs rounded-lg data-[state=active]:bg-red-600 data-[state=active]:text-white">নিবন্ধন</TabsTrigger>
                                                 </TabsList>
 
                                                 <TabsContent value="teacher-login" className="mt-0 space-y-4">
@@ -786,4 +786,3 @@ export default function LoginPage() {
         </div>
     );
 }
-

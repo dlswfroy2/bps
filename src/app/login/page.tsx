@@ -139,7 +139,7 @@ const BackgroundGallery = () => {
                             alt={img.title} 
                             fill 
                             priority={idx === 0}
-                            className="object-cover object-top"
+                            className="object-cover object-center"
                         />
                         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
                     </div>

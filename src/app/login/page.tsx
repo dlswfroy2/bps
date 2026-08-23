@@ -139,7 +139,7 @@ const BackgroundGallery = () => {
                             alt={img.title} 
                             fill 
                             priority={idx === 0}
-                            className="object-cover"
+                            className="object-cover object-top"
                         />
                         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
                     </div>
@@ -360,7 +360,7 @@ export default function LoginPage() {
         setIsSearching(true);
         try {
             const cleanRoll = parseInt(bnToEn(searchRoll).trim(), 10);
-            const cleanStudentId = bnToEn(searchStudentId).trim().toUpperCase();
+            const cleanStudentId = bnToEn(searchStudentId).trim().toUpperCase().replace(/\s/g, '');
             
             const studentQuery = query(
                 collection(db, 'students'), 
@@ -377,10 +377,10 @@ export default function LoginPage() {
             }
             
             const foundStudent = studentFromDoc(studentSnap.docs[0]);
-            // Robust ID comparison: standardize both to English digits and trim
-            const dbStudentId = bnToEn(foundStudent.generatedId || '').trim().toUpperCase();
+            // Standardize both IDs for accurate comparison
+            const dbStudentId = bnToEn(foundStudent.generatedId || '').trim().toUpperCase().replace(/\s/g, '');
             
-            if (dbStudentId !== cleanStudentId) {
+            if (dbStudentId !== cleanStudentId && foundStudent.generatedId !== cleanStudentId) {
                  toast({ variant: 'destructive', title: 'আইডি মেলেনি', description: 'অনুগ্রহ করে সঠিক আইডি নম্বরটি পুনরায় লিখুন।' });
                  setIsSearching(false); return;
             }
@@ -481,14 +481,11 @@ export default function LoginPage() {
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-md p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-[32px] z-[150]">
-                                    <DialogHeader className="sr-only">
-                                        <DialogTitle>লগইন</DialogTitle>
+                                    <DialogHeader className="p-6 bg-primary text-white text-center shrink-0 border-b-0">
+                                        <DialogTitle className="text-2xl font-black">প্রশাসনিক লগইন</DialogTitle>
+                                        <DialogDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</DialogDescription>
                                     </DialogHeader>
                                     <Card className="w-full border-none shadow-none bg-white">
-                                        <CardHeader className="bg-primary p-8 text-white text-center rounded-none">
-                                            <CardTitle className="text-2xl font-black">প্রশাসনিক লগইন</CardTitle>
-                                            <CardDescription className="text-white/80 font-bold">আপনার ইমেইল ও পাসওয়ার্ড দিন</CardDescription>
-                                        </CardHeader>
                                         <CardContent className="p-8">
                                             <Tabs defaultValue="teacher-login" className="w-full">
                                                 <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 mb-6 h-11 rounded-xl">
@@ -602,7 +599,7 @@ export default function LoginPage() {
                 <DialogContent className="sm:max-w-xl p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-2xl z-[150]">
                     {!searchResult ? (
                         <>
-                            <DialogHeader className="p-8 bg-primary text-white">
+                            <DialogHeader className="p-8 bg-primary text-white border-b-0 shrink-0">
                                 <DialogTitle className="text-3xl font-black flex items-center gap-2"><BookOpen className="h-8 w-8" /> ফলাফল অনুসন্ধান</DialogTitle>
                                 <DialogDescription className="text-white/80 font-bold text-lg mt-1">সঠিক তথ্য দিয়ে ড্রাফট রেজাল্ট সামারি দেখুন</DialogDescription>
                             </DialogHeader>
@@ -654,7 +651,7 @@ export default function LoginPage() {
                         </>
                     ) : (
                         <div className="flex flex-col bg-white animate-in zoom-in duration-300">
-                            <DialogHeader className="p-8 bg-primary text-white flex flex-row items-center gap-6">
+                            <DialogHeader className="p-8 bg-primary text-white flex flex-row items-center gap-6 shrink-0 border-b-0">
                                 <div className="h-24 w-24 border-4 border-white/30 shadow-xl overflow-hidden shrink-0 rounded-full">
                                     <img src={sanitizePhotoUrl(searchResult.student.photoUrl, searchResult.student.gender) || getStudentPlaceholderImage(searchResult.student.gender)} className="object-cover h-full w-full" alt="avatar" />
                                 </div>
@@ -712,7 +709,7 @@ export default function LoginPage() {
                                 </div>
                             </div>
 
-                            <DialogFooter className="p-6 bg-white border-t flex flex-col sm:flex-row gap-4">
+                            <DialogFooter className="p-6 bg-white border-t flex flex-col sm:flex-row gap-4 shrink-0">
                                 <Button variant="outline" className="font-black flex-1 h-12 rounded-xl text-lg" onClick={() => setSearchResult(null)}>অন্য ফলাফল খুঁজুন</Button>
                                 <Button 
                                     className="font-black flex-1 h-12 shadow-xl bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg"
@@ -730,41 +727,41 @@ export default function LoginPage() {
             {searchResult && (
                 <div className="hidden print:block printable-area bg-white text-black p-8 font-kalpurush border-[10px] border-double border-primary/20 rounded-sm w-[210mm] h-[297mm] mx-auto overflow-hidden">
                     <header className="text-center border-b-4 border-primary pb-2 mb-6 flex flex-col items-center">
-                        {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-20 h-20 object-contain mb-2" />}
-                        <h1 className="text-3xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
-                        <p className="text-base font-bold text-slate-700">{schoolInfo.address}</p>
-                        <div className="mt-2 inline-block bg-primary text-white border-2 border-primary px-8 py-1 rounded-full font-black text-lg shadow-lg">ফলাফল বিবরণী (সামারি)</div>
+                        {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-16 h-16 object-contain mb-1" />}
+                        <h1 className="text-2xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
+                        <p className="text-sm font-bold text-slate-700">{schoolInfo.address}</p>
+                        <div className="mt-1 inline-block bg-primary text-white border-2 border-primary px-8 py-0.5 rounded-full font-black text-base shadow-lg">ফলাফল বিবরণী (সামারি)</div>
                     </header>
 
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-6 text-base font-bold bg-slate-50 p-4 border-2 rounded-[24px]">
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-28">শিক্ষার্থীর নাম:</span> <span className="font-black text-primary">{searchResult.student.studentNameBn}</span></div>
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-20">আইডি নং:</span> <span className="font-black">{toBengaliNumber(searchResult.student.generatedId || '-')}</span></div>
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-28">শ্রেণি ও রোল:</span> <span className="font-black">{classNamesMap[searchResult.student.className]} শ্রেণি, রোল- {toBengaliNumber(searchResult.student.roll)}</span></div>
-                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-20">পরীক্ষার নাম:</span> <span className="font-black">{searchExam}</span></div>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 mb-6 text-sm font-bold bg-slate-50 p-4 border-2 rounded-[20px]">
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-24">শিক্ষার্থীর নাম:</span> <span className="font-black text-primary">{searchResult.student.studentNameBn}</span></div>
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-16">আইডি নং:</span> <span className="font-black">{toBengaliNumber(searchResult.student.generatedId || '-')}</span></div>
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-24">শ্রেণি ও রোল:</span> <span className="font-black">{classNamesMap[searchResult.student.className]} শ্রেণি, রোল- {toBengaliNumber(searchResult.student.roll)}</span></div>
+                        <div className="flex gap-2 border-b border-dashed pb-1"><span className="text-slate-500 w-16">পরীক্ষা:</span> <span className="font-black">{searchExam}</span></div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4 mb-6">
-                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">মোট নম্বর</p><p className="text-2xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p></div>
-                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">GPA</p><p className="text-2xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p></div>
-                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">গ্রেড</p><p className="text-2xl font-black">{searchResult.isPass ? searchResult.finalGrade : 'F'}</p></div>
-                        <div className="p-3 border-[2px] border-black rounded-xl text-center shadow-md"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">মেধাস্থান</p><p className="text-2xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
+                    <div className="grid grid-cols-4 gap-3 mb-6">
+                        <div className="p-2 border-[1.5px] border-black rounded-lg text-center shadow-sm"><p className="text-[8px] font-black uppercase text-muted-foreground mb-0.5">মোট নম্বর</p><p className="text-xl font-black text-primary">{toBengaliNumber(searchResult.totalMarks)}</p></div>
+                        <div className="p-2 border-[1.5px] border-black rounded-lg text-center shadow-sm"><p className="text-[8px] font-black uppercase text-muted-foreground mb-0.5">GPA</p><p className="text-xl font-black text-primary">{toBengaliNumber(searchResult.gpa.toFixed(2))}</p></div>
+                        <div className="p-2 border-[1.5px] border-black rounded-lg text-center shadow-sm"><p className="text-[8px] font-black uppercase text-muted-foreground mb-0.5">গ্রেড</p><p className="text-xl font-black">{searchResult.isPass ? searchResult.finalGrade : 'F'}</p></div>
+                        <div className="p-2 border-[1.5px] border-black rounded-lg text-center shadow-sm"><p className="text-[8px] font-black uppercase text-muted-foreground mb-0.5">মেধাস্থান</p><p className="text-xl font-black text-amber-600">{searchResult.isPass ? toBengaliNumber(searchResult.meritPosition || '-') : '-'}</p></div>
                     </div>
 
-                    <div className="border-[2px] border-black rounded-[24px] overflow-hidden mb-6 shadow-md">
-                        <table className="w-full text-sm text-center border-collapse">
-                            <thead className="bg-slate-100 border-b-[2px] border-black h-10">
+                    <div className="border-[1.5px] border-black rounded-[20px] overflow-hidden mb-6 shadow-sm">
+                        <table className="w-full text-xs text-center border-collapse">
+                            <thead className="bg-slate-100 border-b-[1.5px] border-black h-8">
                                 <tr>
-                                    <th className="border-r border-black font-black p-1.5">বিষয়ের নাম</th>
-                                    <th className="border-r border-black font-black p-1.5">প্রাপ্ত নম্বর</th>
-                                    <th className="border-r border-black font-black p-1.5">গ্রেড</th>
-                                    <th className="font-black p-1.5">পয়েন্ট</th>
+                                    <th className="border-r border-black font-black p-1">বিষয়ের নাম</th>
+                                    <th className="border-r border-black font-black p-1">প্রাপ্ত নম্বর</th>
+                                    <th className="border-r border-black font-black p-1">গ্রেড</th>
+                                    <th className="font-black p-1">পয়েন্ট</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {Array.from(searchResult.subjectResults.entries()).map(([name, res]) => (
-                                    <tr key={name} className="h-8 border-b border-slate-200 last:border-0">
-                                        <td className="border-r border-slate-200 text-left pl-8 font-bold">{name}</td>
-                                        <td className="border-r border-slate-200 font-black text-blue-900 text-lg">{toBengaliNumber(res.marks)}</td>
+                                    <tr key={name} className="h-7 border-b border-slate-200 last:border-0">
+                                        <td className="border-r border-slate-200 text-left pl-6 font-bold">{name}</td>
+                                        <td className="border-r border-slate-200 font-black text-blue-900">{toBengaliNumber(res.marks)}</td>
                                         <td className="border-r border-slate-200 font-black">{res.grade}</td>
                                         <td className="font-bold">{toBengaliNumber(res.point.toFixed(2))}</td>
                                     </tr>
@@ -773,11 +770,11 @@ export default function LoginPage() {
                         </table>
                     </div>
 
-                    <div className="mt-auto flex justify-between px-12 pt-10">
-                        <div className="text-center w-48 border-t-2 border-black pt-1.5 font-black text-xs">অফিস সহকারীর স্বাক্ষর</div>
-                        <div className="text-center w-48 border-t-2 border-black pt-1.5 font-black text-xs">প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
+                    <div className="mt-6 flex justify-between px-10 pt-8">
+                        <div className="text-center w-40 border-t border-black pt-1 font-black text-[10px]">অফিস সহকারীর স্বাক্ষর</div>
+                        <div className="text-center w-40 border-t border-black pt-1 font-black text-[10px]">প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
                     </div>
-                    <div className="mt-8 text-center text-[9px] text-slate-300 italic border-t border-dashed pt-3 flex justify-between">
+                    <div className="mt-auto text-center text-[8px] text-slate-300 italic border-t border-dashed pt-2 flex justify-between">
                         <span>Digital Management Portal | {schoolInfo.name}</span>
                         <span>জেনারেশন সময়: {format(new Date(), 'PPpp', { locale: bn })}</span>
                     </div>
@@ -786,4 +783,3 @@ export default function LoginPage() {
         </div>
     );
 }
-

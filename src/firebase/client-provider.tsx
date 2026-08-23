@@ -1,53 +1,63 @@
 'use client';
 import { ReactNode, useMemo, useEffect, useState } from 'react';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { initializeFirestore, Firestore, enableIndexedDbPersistence, setLogLevel } from 'firebase/firestore';
+import { initializeFirestore, Firestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 import { firebaseConfig } from './config';
 import { FirebaseProvider } from './provider';
 
-// Singleton instances to prevent re-initialization
-// We use a module-level object to persist these instances across re-renders
-// and hot module replacements (HMR) during development.
-const firebaseInstances: {
-  app?: FirebaseApp;
-  firestore?: Firestore;
-  auth?: Auth;
-} = {};
+/**
+ * Singleton instances to prevent re-initialization.
+ * Using global window object to persist across HMR reloads in development.
+ */
+declare global {
+  interface Window {
+    __FIREBASE_APP__?: FirebaseApp;
+    __FIREBASE_FIRESTORE__?: Firestore;
+    __FIREBASE_AUTH__?: Auth;
+  }
+}
 
 function getFirebaseInstances() {
   if (typeof window === 'undefined') return null;
 
-  if (!firebaseInstances.app) {
+  if (!window.__FIREBASE_APP__) {
     if (!getApps().length) {
-      firebaseInstances.app = initializeApp(firebaseConfig);
+      window.__FIREBASE_APP__ = initializeApp(firebaseConfig);
     } else {
-      firebaseInstances.app = getApp();
+      window.__FIREBASE_APP__ = getApp();
     }
   }
 
-  if (!firebaseInstances.firestore) {
-    // Use initializeFirestore with force long polling for better workstation compatibility
-    // and stability in cloud environments.
-    firebaseInstances.firestore = initializeFirestore(firebaseInstances.app, {
-      experimentalForceLongPolling: true,
+  const app = window.__FIREBASE_APP__;
+
+  if (!window.__FIREBASE_FIRESTORE__) {
+    /**
+     * Modern Firestore Initialization (SDK v11+)
+     * Using localCache instead of deprecated enableIndexedDbPersistence to prevent
+     * INTERNAL ASSERTION FAILED errors in workstation environments.
+     */
+    window.__FIREBASE_FIRESTORE__ = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+      experimentalForceLongPolling: true, // Required for Cloud Workstations and stability
     });
 
-    // Set log level to 'silent' to suppress SDK connectivity warnings and errors in console
-    // which helps in reducing unnecessary noise during development.
+    // Set log level to 'silent' to reduce noise in console
     setLogLevel('silent');
   }
 
-  if (!firebaseInstances.auth) {
-    firebaseInstances.auth = getAuth(firebaseInstances.app);
+  if (!window.__FIREBASE_AUTH__) {
+    window.__FIREBASE_AUTH__ = getAuth(app);
   }
 
   return {
-    app: firebaseInstances.app,
-    firestore: firebaseInstances.firestore,
-    auth: firebaseInstances.auth,
+    app: window.__FIREBASE_APP__,
+    firestore: window.__FIREBASE_FIRESTORE__,
+    auth: window.__FIREBASE_AUTH__,
   };
 }
 
@@ -57,23 +67,9 @@ export function FirebaseClientProvider({ children }: { children: ReactNode }) {
   const instances = useMemo(() => getFirebaseInstances(), []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && instances?.firestore && !isInitialized) {
-      // Enable offline persistence with a safe check
-      enableIndexedDbPersistence(instances.firestore)
-        .catch((err) => {
-          if (err.code === 'failed-precondition') {
-            console.warn('Firestore persistence failed: Multiple tabs open');
-          } else if (err.code === 'unimplemented') {
-            console.warn('Firestore persistence failed: Browser not supported');
-          }
-        })
-        .finally(() => {
-          setIsInitialized(true);
-        });
-    } else {
-        setIsInitialized(true);
-    }
-  }, [instances, isInitialized]);
+    // Initialization is now handled inside getFirebaseInstances for v11+ stability
+    setIsInitialized(true);
+  }, [instances]);
 
   if (!instances || !isInitialized) {
     return (

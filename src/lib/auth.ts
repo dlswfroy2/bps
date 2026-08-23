@@ -100,8 +100,27 @@ export async function signUp(email: string, password: string): Promise<{ success
 export async function signIn(email: string, password: string, role: UserRole): Promise<{ success: boolean; error?: string }> {
   const auth = getAuth();
   const db = getFirestore();
+  const normalizedEmail = email.toLowerCase().trim();
+
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // ধাপ ১: Firebase-এ login করার আগেই email দিয়ে Firestore-এ role চেক করা
+    // এতে ভুল role হলে Firebase auth state কখনোই set হবে না
+    const usersRef = collection(db, 'users');
+    const roleCheckQuery = query(usersRef, where('email', '==', normalizedEmail), limit(1));
+    const roleCheckSnap = await getDocs(roleCheckQuery).catch(() => null);
+
+    if (roleCheckSnap && !roleCheckSnap.empty) {
+      const existingRole = roleCheckSnap.docs[0].data().role;
+      if (existingRole !== role) {
+        return {
+          success: false,
+          error: `আপনি "${role === 'admin' ? 'অ্যাডমিন' : 'শিক্ষক'}" সেকশন থেকে লগইন করতে পারবেন না। সঠিক লগইন অপশন বেছে নিন।`,
+        };
+      }
+    }
+
+    // ধাপ ২: role সঠিক হলে তারপর Firebase-এ login করা
+    const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
     const user = userCredential.user;
 
     const userDocRef = doc(db, 'users', user.uid);
@@ -109,13 +128,13 @@ export async function signIn(email: string, password: string, role: UserRole): P
 
     if (!userDoc.exists()) {
         await firebaseSignOut(auth);
-        return { success: false, error: 'আপনার কোনো প্রোফাইল পাওয়া যায়নি। দয়া করে পুনরায় সাইন আপ করুন।' };
+        return { success: false, error: 'আপনার কোনো প্রোফাইল পাওয়া যায়নি। দয়া করে পুনরায় সাইন আপ করুন।' };
     }
 
     const userData = userDoc.data();
     if (userData.role !== role) {
       await firebaseSignOut(auth);
-      return { success: false, error: 'আপনার ভূমিকা (role) সঠিক নয়। আপনি এই সেকশন থেকে লগইন করতে পারবেন না।' };
+      return { success: false, error: `আপনি "${role === 'admin' ? 'অ্যাডমিন' : 'শিক্ষক'}" সেকশন থেকে লগইন করতে পারবেন না। সঠিক লগইন অপশন বেছে নিন।` };
     }
 
     await setDoc(userDocRef, { 
@@ -127,9 +146,9 @@ export async function signIn(email: string, password: string, role: UserRole): P
   } catch (error: any) {
      const authErrorCodes = ['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-email', 'auth/user-disabled'];
      if (authErrorCodes.includes(error.code)) {
-      return { success: false, error: 'আপনার ইমেইল অথবা পাসওয়ার্ডটি সঠিক নয়।' };
+      return { success: false, error: 'আপনার ইমেইল অথবা পাসওয়ার্ডটি সঠিক নয়।' };
     }
-    return { success: false, error: error.message || 'লগইন করা যায়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।' };
+    return { success: false, error: error.message || 'লগইন করা যায়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।' };
   }
 }
 

@@ -9,38 +9,57 @@ import { firebaseConfig } from './config';
 import { FirebaseProvider } from './provider';
 
 // Singleton instances to prevent re-initialization
-let app: FirebaseApp | undefined;
-let firestore: Firestore | undefined;
-let auth: Auth | undefined;
+// We use a module-level object to persist these instances across re-renders
+// and hot module replacements (HMR) during development.
+const firebaseInstances: {
+  app?: FirebaseApp;
+  firestore?: Firestore;
+  auth?: Auth;
+} = {};
 
-// Initialize Firebase on the client-side only
-if (typeof window !== 'undefined') {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
+function getFirebaseInstances() {
+  if (typeof window === 'undefined') return null;
+
+  if (!firebaseInstances.app) {
+    if (!getApps().length) {
+      firebaseInstances.app = initializeApp(firebaseConfig);
+    } else {
+      firebaseInstances.app = getApp();
+    }
   }
 
-  // Use initializeFirestore with force long polling for better workstation compatibility
-  // and stability in flaky internet environments.
-  firestore = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-  });
+  if (!firebaseInstances.firestore) {
+    // Use initializeFirestore with force long polling for better workstation compatibility
+    // and stability in cloud environments.
+    firebaseInstances.firestore = initializeFirestore(firebaseInstances.app, {
+      experimentalForceLongPolling: true,
+    });
 
-  // Set log level to 'silent' to suppress SDK connectivity warnings and errors in console
-  // when working in offline mode or flaky network environments.
-  setLogLevel('silent');
+    // Set log level to 'silent' to suppress SDK connectivity warnings and errors in console
+    // which helps in reducing unnecessary noise during development.
+    setLogLevel('silent');
+  }
 
-  auth = getAuth(app);
+  if (!firebaseInstances.auth) {
+    firebaseInstances.auth = getAuth(firebaseInstances.app);
+  }
+
+  return {
+    app: firebaseInstances.app,
+    firestore: firebaseInstances.firestore,
+    auth: firebaseInstances.auth,
+  };
 }
 
 export function FirebaseClientProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
+  const instances = useMemo(() => getFirebaseInstances(), []);
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && firestore && !isInitialized) {
+    if (typeof window !== 'undefined' && instances?.firestore && !isInitialized) {
       // Enable offline persistence with a safe check
-      enableIndexedDbPersistence(firestore)
+      enableIndexedDbPersistence(instances.firestore)
         .catch((err) => {
           if (err.code === 'failed-precondition') {
             console.warn('Firestore persistence failed: Multiple tabs open');
@@ -54,14 +73,7 @@ export function FirebaseClientProvider({ children }: { children: ReactNode }) {
     } else {
         setIsInitialized(true);
     }
-  }, [isInitialized]);
-
-  const instances = useMemo(() => {
-    if (!app || !firestore || !auth) {
-        return null;
-    }
-    return { app, firestore, auth };
-  }, []);
+  }, [instances, isInitialized]);
 
   if (!instances || !isInitialized) {
     return (

@@ -574,7 +574,7 @@ export default function LoginPage() {
                                     <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                                         <Trophy className="h-5 w-5" />
                                     </div>
-                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
+                                    <p className="text-2xl font-black text-rose-950 mb-1">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
                                     <p className="text-[10px] font-black text-rose-600 uppercase mt-1">এস এস সি পরীক্ষা-{toBengaliNumber(globalYear)}</p>
                                 </div>
                             </div>
@@ -733,7 +733,7 @@ export default function LoginPage() {
                         {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-20 h-20 object-contain mb-2" />}
                         <h1 className="text-3xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
                         <p className="text-base font-bold text-slate-700">{schoolInfo.address}</p>
-                        <div className="mt-2 inline-block bg-primary text-white px-8 py-1 rounded-full font-black text-lg shadow-lg">ফলাফল বিবরণী (সামারি)</div>
+                        <div className="mt-2 inline-block bg-primary text-white border-2 border-primary px-8 py-1 rounded-full font-black text-lg shadow-lg">ফলাফল বিবরণী (সামারি)</div>
                     </header>
 
                     <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-6 text-base font-bold bg-slate-50 p-4 border-2 rounded-[24px]">
@@ -786,3 +786,4 @@ export default function LoginPage() {
         </div>
     );
 }
+

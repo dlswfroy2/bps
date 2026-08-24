@@ -6,6 +6,9 @@ import { Student } from '@/lib/student-data';
 import { getSubjects, Subject, subjectNameNormalization } from '@/lib/subjects';
 import { getResultsForClass, ClassResult } from '@/lib/results-data';
 import { processStudentResults, StudentProcessedResult } from '@/lib/results-calculation';
+import { getExams, Exam } from '@/lib/exam-data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
@@ -50,10 +53,12 @@ function MarksheetContent() {
     const [processedResult, setProcessedResult] = useState<StudentProcessedResult | null>(null);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [allExams, setAllExams] = useState<Exam[]>([]);
 
     const academicYear = searchParams.get('academicYear') || new Date().getFullYear().toString();
-    const rawExamName = searchParams.get('examName') || 'বার্ষিক পরীক্ষা';
-    const displayExamName = examNameEnglishMap[rawExamName] || rawExamName;
+    const initialExam = searchParams.get('examName') || 'বার্ষিক পরীক্ষা';
+    const [currentExamName, setCurrentExamName] = useState<string>(initialExam);
+    const displayExamName = examNameEnglishMap[currentExamName] || currentExamName;
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -61,6 +66,9 @@ function MarksheetContent() {
 
             setIsLoading(true);
             try {
+                // 0. Fetch all exams for session
+                getExams(db, academicYear).then(data => setAllExams(data));
+
                 // 1. Fetch the specific student
                 const studentDoc = await getDoc(doc(db, 'students', studentId));
                 if (!studentDoc.exists()) {
@@ -84,7 +92,7 @@ function MarksheetContent() {
                 const allSubjectsForGroup = getSubjects(studentData.className, studentData.group || undefined).filter(s => s.isExamSubject !== false);
                 
                 const resultsPromises = allSubjectsForGroup
-                    .map(subject => getResultsForClass(db, academicYear, rawExamName, studentData.className, subject.name, studentData.group || undefined));
+                    .map(subject => getResultsForClass(db, academicYear, currentExamName, studentData.className, subject.name, studentData.group || undefined));
                 
                 const fetchedResultsBySubject = (await Promise.all(resultsPromises)).filter((result): result is ClassResult => !!result);
                 setResultsBySubject(fetchedResultsBySubject);
@@ -120,7 +128,7 @@ function MarksheetContent() {
         };
 
         fetchAllData();
-    }, [db, studentId, academicYear, rawExamName]);
+    }, [db, studentId, academicYear, currentExamName]);
 
     
     const renderMeritPosition = (position?: number) => {
@@ -211,18 +219,47 @@ function MarksheetContent() {
             `}</style>
 
             {/* Action Bar */}
-            <div className="w-full max-w-[210mm] flex justify-between items-center mb-6 no-print bg-white p-4 rounded-lg shadow-sm border">
-                <div className="flex items-center gap-4">
-                    <Button variant="outline" size="icon" onClick={() => window.history.back()}><ArrowLeft className="h-4 w-4" /></Button>
+            <div className="w-full max-w-[210mm] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 no-print bg-white p-4 rounded-2xl shadow-sm border">
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" size="icon" onClick={() => window.history.back()} className="rounded-xl"><ArrowLeft className="h-4 w-4" /></Button>
                     <div>
-                        <h1 className="text-xl font-bold text-primary">Marksheet Preview</h1>
-                        <p className="text-sm text-muted-foreground">{student.studentNameEn || student.studentNameBn}</p>
+                        <h1 className="text-lg font-black text-primary">Marksheet Preview</h1>
+                        <p className="text-xs font-bold text-muted-foreground">{student.studentNameEn || student.studentNameBn} | Roll: {student.roll} | Class {student.className}</p>
                     </div>
                 </div>
-                <Button onClick={() => window.print()} size="lg" className="shadow-md hover:shadow-lg transition-all">
-                    <Printer className="mr-2 h-5 w-5" />
-                    Print (A4)
-                </Button>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+                        <Label className="text-xs font-black text-slate-700 whitespace-nowrap">পরীক্ষা:</Label>
+                        <Select value={currentExamName} onValueChange={setCurrentExamName}>
+                            <SelectTrigger className="h-10 w-[180px] bg-slate-50 border-slate-200 text-xs font-black text-slate-800">
+                                <SelectValue placeholder="পরীক্ষা নির্বাচন করুন" />
+                            </SelectTrigger>
+                            <SelectContent className="font-kalpurush">
+                                {allExams.length > 0 ? (
+                                    allExams.map((e) => (
+                                        <SelectItem key={e.id || e.name} value={e.name} className="font-bold text-xs">
+                                            {e.name}
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <>
+                                        <SelectItem value="১ম সাময়িক পরীক্ষা" className="font-bold text-xs">১ম সাময়িক পরীক্ষা</SelectItem>
+                                        <SelectItem value="২য় সাময়িক পরীক্ষা" className="font-bold text-xs">২য় সাময়িক পরীক্ষা</SelectItem>
+                                        <SelectItem value="বার্ষিক পরীক্ষা" className="font-bold text-xs">বার্ষিক পরীক্ষা</SelectItem>
+                                        <SelectItem value="প্রাক-নির্বাচনী পরীক্ষা" className="font-bold text-xs">প্রাক-নির্বাচনী পরীক্ষা</SelectItem>
+                                        <SelectItem value="নির্বাচনী পরীক্ষা" className="font-bold text-xs">নির্বাচনী পরীক্ষা</SelectItem>
+                                    </>
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <Button onClick={() => window.print()} size="default" className="shadow-md hover:shadow-lg transition-all font-black rounded-xl bg-primary text-white">
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print (A4)
+                    </Button>
+                </div>
             </div>
             
             {/* Printable Marksheet Card */}

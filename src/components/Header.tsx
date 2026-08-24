@@ -508,23 +508,54 @@ export function Header() {
                     </div>
                   </div>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-3 p-6 bg-white">
-                  <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-rose-100 hover:bg-rose-50 text-rose-700 font-black rounded-2xl shadow-sm" onClick={() => { setActionsDialogOpen(false); router.push(`/student-list?class=${selectedStudent?.className}&studentId=${selectedStudent?.id}`); }}>
-                    <Users className="h-5 w-5" />
-                    <span className="text-[10px]">প্রোফাইল</span>
-                  </Button>
-                  <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-teal-100 hover:bg-teal-50 text-teal-700 font-black rounded-2xl shadow-sm" onClick={() => { setActionsDialogOpen(false); setFeeDialogOpen(true); }}>
-                    <Banknote className="h-5 w-5" />
-                    <span className="text-[10px]">বেতন আদায়</span>
-                  </Button>
-                  <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-blue-100 hover:bg-blue-50 text-blue-700 font-black rounded-2xl shadow-sm" onClick={() => { setActionsDialogOpen(false); router.push(`/student-profile?roll=${selectedStudent?.roll}&class=${selectedStudent?.className}`); }}>
-                    <CalendarCheck className="h-5 w-5" />
-                    <span className="text-[10px]">হাজিরা রিপোর্ট</span>
-                  </Button>
-                  <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-violet-100 hover:bg-violet-50 text-violet-700 font-black rounded-2xl shadow-sm" onClick={() => { setActionsDialogOpen(false); window.open(`/marksheet/${selectedStudent?.id}?academicYear=${selectedYear}&examName=${encodeURIComponent(selectedExamForMarksheet)}`, '_blank'); }}>
-                    <FileBadge className="h-5 w-5" />
-                    <span className="text-[10px]">মার্কশিট</span>
-                  </Button>
+              <div className="p-6 bg-white space-y-4">
+                  {/* Exam Selector for Marksheet */}
+                  <div className="space-y-1.5 p-3.5 bg-violet-50/70 rounded-2xl border-2 border-violet-100 shadow-sm">
+                      <Label className="text-xs font-black text-violet-900 flex items-center gap-1.5">
+                          <FileBadge className="h-4 w-4 text-violet-600" /> মার্কশিটের জন্য পরীক্ষা নির্বাচন করুন:
+                      </Label>
+                      <Select value={selectedExamForMarksheet} onValueChange={setSelectedExamForMarksheet}>
+                          <SelectTrigger className="h-10 bg-white border border-violet-200 text-xs font-black text-violet-950 focus:ring-violet-400">
+                              <SelectValue placeholder="পরীক্ষা নির্বাচন করুন" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[250px] font-kalpurush">
+                              {exams.length > 0 ? (
+                                  exams.map((exam) => (
+                                      <SelectItem key={exam.id || exam.name} value={exam.name} className="font-bold text-xs">
+                                          {exam.name}
+                                      </SelectItem>
+                                  ))
+                              ) : (
+                                  <>
+                                      <SelectItem value="১ম সাময়িক পরীক্ষা" className="font-bold text-xs">১ম সাময়িক পরীক্ষা</SelectItem>
+                                      <SelectItem value="২য় সাময়িক পরীক্ষা" className="font-bold text-xs">২য় সাময়িক পরীক্ষা</SelectItem>
+                                      <SelectItem value="বার্ষিক পরীক্ষা" className="font-bold text-xs">বার্ষিক পরীক্ষা</SelectItem>
+                                      <SelectItem value="প্রাক-নির্বাচনী পরীক্ষা" className="font-bold text-xs">প্রাক-নির্বাচনী পরীক্ষা</SelectItem>
+                                      <SelectItem value="নির্বাচনী পরীক্ষা" className="font-bold text-xs">নির্বাচনী পরীক্ষা</SelectItem>
+                                  </>
+                              )}
+                          </SelectContent>
+                      </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                      <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-rose-100 hover:bg-rose-50 text-rose-700 font-black rounded-2xl shadow-sm" onClick={() => { setActionsDialogOpen(false); router.push(`/student-list?class=${selectedStudent?.className}&studentId=${selectedStudent?.id}`); }}>
+                        <Users className="h-5 w-5" />
+                        <span className="text-[10px]">প্রোফাইল</span>
+                      </Button>
+                      <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-teal-100 hover:bg-teal-50 text-teal-700 font-black rounded-2xl shadow-sm" onClick={() => { setActionsDialogOpen(false); setFeeDialogOpen(true); }}>
+                        <Banknote className="h-5 w-5" />
+                        <span className="text-[10px]">বেতন আদায়</span>
+                      </Button>
+                      <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-blue-100 hover:bg-blue-50 text-blue-700 font-black rounded-2xl shadow-sm" onClick={() => { setActionsDialogOpen(false); router.push(`/student-profile?roll=${selectedStudent?.roll}&class=${selectedStudent?.className}`); }}>
+                        <CalendarCheck className="h-5 w-5" />
+                        <span className="text-[10px]">হাজিরা রিপোর্ট</span>
+                      </Button>
+                      <Button variant="outline" className="h-14 flex flex-col items-center justify-center gap-1 border-2 border-violet-200 bg-violet-600 text-white hover:bg-violet-700 font-black rounded-2xl shadow-md transition-all active:scale-95" onClick={() => { setActionsDialogOpen(false); window.open(`/marksheet/${selectedStudent?.id}?academicYear=${selectedYear}&examName=${encodeURIComponent(selectedExamForMarksheet || 'বার্ষিক পরীক্ষা')}`, '_blank'); }}>
+                        <FileBadge className="h-5 w-5" />
+                        <span className="text-[10px]">মার্কশিট প্রিন্ট</span>
+                      </Button>
+                  </div>
               </div>
               <DialogFooter className="p-4 bg-slate-50 border-t">
                   <Button variant="ghost" className="w-full font-bold h-10" onClick={() => setActionsDialogOpen(false)}>বন্ধ করুন</Button>

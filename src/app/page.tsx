@@ -651,6 +651,7 @@ const IncomeExpenseChart = () => {
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
+  const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
   const router = useRouter();
   const { toast } = useToast();
   const [totalStudents, setTotalStudents] = useState(0);
@@ -1176,10 +1177,10 @@ export default function Home() {
                     <TableBody>
                         {Object.entries(classAttendance).map(([className, data]) => (
                             <TableRow key={className}>
-                                <TableCell className="font-medium pl-4">{classNamesMap[className]} শ্রেণি</TableCell>
-                                <TableCell className="text-center">{data.total.toLocaleString('bn-BD')}</TableCell>
-                                <TableCell className="text-center text-emerald-600 font-semibold">{data.present.toLocaleString('bn-BD')}</TableCell>
-                                <TableCell className="text-center text-rose-600 font-semibold">{data.absent.toLocaleString('bn-BD')}</TableCell>
+                                <TableCell className="font-medium pl-4 notranslate" translate="no">{isEn ? `Class ${className}` : `${classNamesMap[className]} শ্রেণি`}</TableCell>
+                                <TableCell className="text-center notranslate" translate="no">{isEn ? data.total : data.total.toLocaleString('bn-BD')}</TableCell>
+                                <TableCell className="text-center text-emerald-600 font-semibold notranslate" translate="no">{isEn ? data.present : data.present.toLocaleString('bn-BD')}</TableCell>
+                                <TableCell className="text-center text-rose-600 font-semibold notranslate" translate="no">{isEn ? data.absent : data.absent.toLocaleString('bn-BD')}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

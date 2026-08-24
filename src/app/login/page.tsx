@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { signIn, signUp } from '@/lib/auth';
 import type { UserRole } from '@/lib/user';
 import { useAuth } from '@/hooks/useAuth';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import Link from 'next/link';
 import { 
     Loader2, Search, BookOpen, User, Info, 
@@ -217,6 +218,7 @@ export default function LoginPage() {
     const { schoolInfo, isLoading: isSchoolInfoLoading } = useSchoolInfo();
     const { availableYears, selectedYear: globalYear } = useAcademicYear();
     const db = useFirestore();
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -238,7 +240,8 @@ export default function LoginPage() {
         students: 0, 
         teachers: 0,
         attendanceRate: 0,
-        passRate: 0
+        passRate: 0,
+        sscYear: globalYear
     });
 
     useEffect(() => {
@@ -266,11 +269,10 @@ export default function LoginPage() {
                 
                 const sscRecordsPromise = getDocs(query(
                     collection(db, 'publicExamRecords'), 
-                    where('academicYear', '==', globalYear), 
                     where('examType', '==', 'SSC')
                 ));
 
-                const [sSnap, tSnap, attSnap, sscSnap] = await Promise.all([
+                const [sSnap, tSnap, attSnap, allSscSnap] = await Promise.all([
                     sPromise.catch(() => ({ size: 0, docs: [] })),
                     tPromise.catch(() => ({ size: 0, docs: [] })),
                     attPromise.catch(() => ({ size: 0, docs: [] })),
@@ -288,23 +290,37 @@ export default function LoginPage() {
                     }
                 });
 
-                // Accurate Pass Rate Calculation from Public Exam Records
-                const totalSscParticipants = sscSnap.size;
-                const passedCount = sscSnap.docs.filter(doc => {
-                    const data = doc.data();
-                    const grade = (data.grade || '').toString().trim().toUpperCase();
-                    const gpa = Number(data.gpa) || 0;
-                    // Any grade other than F and GPA > 0 is considered Pass
-                    return grade !== '' && grade !== 'F' && gpa > 0;
-                }).length;
+                // Find SSC records: check globalYear first, then most recent year with records
+                let sscYear = globalYear;
+                let sscDocs = (allSscSnap as any).docs.filter((d: any) => d.data().academicYear === globalYear);
+                
+                if (sscDocs.length === 0 && (allSscSnap as any).docs.length > 0) {
+                    const yearsWithRecords = Array.from(new Set((allSscSnap as any).docs.map((d: any) => d.data().academicYear).filter(Boolean))).sort().reverse();
+                    if (yearsWithRecords.length > 0) {
+                        sscYear = yearsWithRecords[0] as string;
+                        sscDocs = (allSscSnap as any).docs.filter((d: any) => d.data().academicYear === sscYear);
+                    }
+                }
 
-                const passRatePercent = totalSscParticipants > 0 ? (passedCount / totalSscParticipants) * 100 : 0;
+                let passRatePercent = 0;
+                if (sscDocs.length > 0) {
+                    const passedCount = sscDocs.filter((doc: any) => {
+                        const data = doc.data();
+                        const grade = (data.grade || '').toString().trim().toUpperCase();
+                        const gpa = Number(data.gpa) || 0;
+                        return grade !== '' && grade !== 'F' && gpa > 0;
+                    }).length;
+                    passRatePercent = (passedCount / sscDocs.length) * 100;
+                } else if ((schoolInfo as any)?.passingRate) {
+                    passRatePercent = parseFloat((schoolInfo as any).passingRate) || 0;
+                }
 
                 setStats({ 
                     students: totalStudentsCount, 
                     teachers: activeTeachersCount,
                     attendanceRate: totalStudentsCount > 0 ? (presentCount / totalStudentsCount) * 100 : 0,
-                    passRate: passRatePercent
+                    passRate: passRatePercent,
+                    sscYear: sscYear
                 });
             } catch (e) {
                 console.error("Live Stats Error:", e);
@@ -422,7 +438,8 @@ export default function LoginPage() {
                         <p className="text-[10px] md:text-xs font-bold text-white/80 uppercase tracking-widest mt-0.5">Digital Management Portal</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                    <LanguageSwitcher />
                     <Badge variant="outline" className="hidden sm:flex border-white/20 text-white font-black px-4 py-1.5 h-auto text-sm shadow-sm bg-white/5">
                         সেশন: {toBengaliNumber(globalYear)}
                     </Badge>
@@ -456,7 +473,7 @@ export default function LoginPage() {
                                 onClick={() => setIsSearchOpen(true)}
                             >
                                 <BookOpen className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
-                                ফলাফল অনুসন্ধান
+                                {isEn ? 'Result Search' : 'ফলাফল অনুসন্ধান'}
                             </Button>
                             <Link href="/admission">
                                 <Button 
@@ -465,7 +482,7 @@ export default function LoginPage() {
                                     className="h-9 px-5 rounded-xl border-2 border-emerald-400/50 text-white font-black text-[10px] bg-emerald-600/20 backdrop-blur-md shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
                                 >
                                     <UserPlus className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
-                                    অনলাইন ভর্তি
+                                    {isEn ? 'Online Admission' : 'অনলাইন ভর্তি'}
                                 </Button>
                             </Link>
 
@@ -477,7 +494,7 @@ export default function LoginPage() {
                                         className="h-9 px-5 rounded-xl border-2 border-blue-400/50 text-white font-black text-[10px] bg-blue-600/20 backdrop-blur-md shadow-xl hover:bg-blue-600 hover:text-white transition-all duration-500 group"
                                     >
                                         <LogIn className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
-                                        লগইন করুন
+                                        {isEn ? 'Login' : 'লগইন করুন'}
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-md p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-[32px] z-[150]">
@@ -532,15 +549,15 @@ export default function LoginPage() {
                         <div className="flex flex-wrap gap-4 pt-1">
                             <div className="flex items-center gap-2">
                                 <div className="h-5 w-5 rounded-full bg-white/20 backdrop-blur-md shadow-md flex items-center justify-center text-white"><CheckCircle2 className="h-3 w-3" /></div>
-                                <span className="font-bold text-white text-[10px] drop-shadow-md">ডিজিটাল হাজিরা</span>
+                                <span className="font-bold text-white text-[10px] drop-shadow-md">{isEn ? 'Digital Attendance' : 'ডিজিটাল হাজিরা'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="h-5 w-5 rounded-full bg-white/20 backdrop-blur-md shadow-md flex items-center justify-center text-white"><ShieldCheck className="h-3 w-3" /></div>
-                                <span className="font-bold text-white text-[10px] drop-shadow-md">নিরাপদ তথ্যভাণ্ডার</span>
+                                <span className="font-bold text-white text-[10px] drop-shadow-md">{isEn ? 'Secure Database' : 'নিরাপদ তথ্যভাণ্ডার'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="h-5 w-5 rounded-full bg-white/20 backdrop-blur-md shadow-md flex items-center justify-center text-white"><TrendingUp className="h-3 w-3" /></div>
-                                <span className="font-bold text-white text-[10px] drop-shadow-md">স্বচ্ছ হিসাব শাখা</span>
+                                <span className="font-bold text-white text-[10px] drop-shadow-md">{isEn ? 'Transparent Accounts' : 'স্বচ্ছ হিসাব শাখা'}</span>
                             </div>
                         </div>
 
@@ -550,29 +567,29 @@ export default function LoginPage() {
                                     <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                         <Users className="h-5 w-5" />
                                     </div>
-                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.students || 0)}</p>
-                                    <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">শিক্ষার্থী</p>
+                                    <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? (stats.students || 0) : toBengaliNumber(stats.students || 0)}</p>
+                                    <p className="text-[10px] font-black text-indigo-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'STUDENT' : 'শিক্ষার্থী'}</p>
                                 </div>
                                 <div className="bg-white/90 backdrop-blur-md border-2 border-emerald-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
                                     <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                                         <GraduationCap className="h-5 w-5" />
                                     </div>
-                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.teachers || 0)}</p>
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase mt-1">শিক্ষক</p>
+                                    <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? (stats.teachers || 0) : toBengaliNumber(stats.teachers || 0)}</p>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'TEACHER' : 'শিক্ষক'}</p>
                                 </div>
                                 <div className="bg-white/90 backdrop-blur-md border-2 border-blue-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
                                     <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                         <CalendarCheck className="h-5 w-5" />
                                     </div>
-                                    <p className="text-2xl font-black text-slate-900">{toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
-                                    <p className="text-[10px] font-black text-blue-600 uppercase mt-1">উপস্থিতি</p>
+                                    <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? stats.attendanceRate.toFixed(1) : toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
+                                    <p className="text-[10px] font-black text-blue-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'ATTENDANCE' : 'উপস্থিতি'}</p>
                                 </div>
                                 <div className="bg-white/90 backdrop-blur-md border-2 border-rose-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
                                     <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
                                         <Trophy className="h-5 w-5" />
                                     </div>
-                                    <p className="text-2xl font-black text-rose-950 mb-1">{toBengaliNumber(stats.passRate.toFixed(1))}%</p>
-                                    <p className="text-[10px] font-black text-rose-600 uppercase mt-1">এস এস সি পরীক্ষা-{toBengaliNumber(globalYear)}</p>
+                                    <p className="text-2xl font-black text-rose-950 mb-1 notranslate" translate="no">{isEn ? stats.passRate.toFixed(1) : toBengaliNumber(stats.passRate.toFixed(1))}%</p>
+                                    <p className="text-[10px] font-black text-rose-600 uppercase mt-1 notranslate" translate="no">{isEn ? `SSC EXAM- ${stats.sscYear || globalYear}` : `এস এস সি পরীক্ষা-${toBengaliNumber(stats.sscYear || globalYear)}`}</p>
                                 </div>
                             </div>
                         </div>

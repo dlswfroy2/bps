@@ -51,6 +51,7 @@ import { useSchoolInfo } from '@/context/SchoolInfoContext';
 import { Label } from "@/components/ui/label";
 import { Skeleton } from './ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { signOut } from '@/lib/auth';
 import { useFirestore } from '@/firebase';
 import { collection, query, where, limit, onSnapshot, getDocs } from 'firebase/firestore';
@@ -386,6 +387,7 @@ export function Header() {
         </Link>
         
         <div className="flex items-center gap-2 sm:gap-4">
+          <LanguageSwitcher />
           {user && (
             <Button 
               variant="ghost" 

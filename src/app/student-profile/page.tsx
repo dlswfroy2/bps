@@ -192,6 +192,8 @@ function StudentProfileSearchContent() {
     const [isProgressLoading, setIsProgressLoading] = useState(false);
     const [activeProfileTab, setActiveProfileTab] = useState('details');
 
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
+
     useEffect(() => {
         setIsMounted(true);
     }, []);
@@ -434,23 +436,31 @@ function StudentProfileSearchContent() {
                 <main className="flex flex-1 flex-col items-center justify-center p-4 min-h-[calc(100vh-64px)] pb-80">
                     <Card className="w-full max-w-lg shadow-xl border-2 border-primary/10">
                         <CardHeader className="text-center bg-primary/5 rounded-t-lg">
-                            <CardTitle className="text-2xl text-primary font-black">শিক্ষার্থী প্রোফাইল অনুসন্ধান</CardTitle>
-                            <CardDescription>রোল এবং শ্রেণি দিয়ে শিক্ষার্থীর বিস্তারিত তথ্য দেখুন</CardDescription>
+                            <CardTitle className="text-2xl text-primary font-black">
+                                {isEn ? 'Student Profile Search' : 'শিক্ষার্থী প্রোফাইল অনুসন্ধান'}
+                            </CardTitle>
+                            <CardDescription>
+                                {isEn ? 'View student details with roll and class' : 'রোল এবং শ্রেণি দিয়ে শিক্ষার্থীর বিস্তারিত তথ্য দেখুন'}
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-6">
                             <form onSubmit={(e) => handleSearch(e)} className="space-y-6">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="roll" className="font-bold">রোল নম্বর</Label>
-                                        <Input id="roll" value={roll} onChange={e => setRoll(e.target.value)} required placeholder="উদা: ১" />
+                                        <Label htmlFor="roll" className="font-bold">{isEn ? 'Roll Number' : 'রোল নম্বর'}</Label>
+                                        <Input id="roll" value={roll} onChange={e => setRoll(e.target.value)} required placeholder={isEn ? "Ex: 1" : "উদা: ১"} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="class" className="font-bold">শ্রেণি</Label>
+                                        <Label htmlFor="class" className="font-bold">{isEn ? 'Class' : 'শ্রেণি'}</Label>
                                         <Select value={className} onValueChange={setClassName} required>
-                                            <SelectTrigger id="class" className="bg-white"><SelectValue placeholder="শ্রেণি নির্বাচন" /></SelectTrigger>
+                                            <SelectTrigger id="class" className="bg-white">
+                                                <SelectValue placeholder={isEn ? "Select Class" : "শ্রেণি নির্বাচন"} />
+                                            </SelectTrigger>
                                             <SelectContent position="item-aligned">
                                                 {Object.entries(classNamesMap).map(([id, label]) => (
-                                                    <SelectItem key={id} value={id}>{label} শ্রেণি</SelectItem>
+                                                    <SelectItem key={id} value={id}>
+                                                        {isEn ? `Class ${id}` : `${label} শ্রেণি`}
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -458,7 +468,7 @@ function StudentProfileSearchContent() {
                                 </div>
 
                                 <Button type="submit" className="w-full h-12 text-lg shadow-md font-black" disabled={isLoading}>
-                                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><Search className="mr-2 h-5 w-5" /> তথ্য দেখুন</>}
+                                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><Search className="mr-2 h-5 w-5" /> <span>{isEn ? 'View Information' : 'তথ্য দেখুন'}</span></>}
                                 </Button>
                             </form>
                         </CardContent>
@@ -526,34 +536,34 @@ function StudentProfileSearchContent() {
                                         {/* Personal Info */}
                                         <Card className="border-[4px] border-black rounded-xl bg-white shadow-[6px_6px_0px_rgba(0,0,0,0.1)] overflow-hidden">
                                             <CardHeader className="bg-primary/5 border-b-2 border-black/10">
-                                                <CardTitle className="text-lg font-black flex items-center gap-2"><UserRound className="h-5 w-5 text-primary" /> ব্যক্তিগত তথ্য</CardTitle>
+                                                <CardTitle className="text-lg font-black flex items-center gap-2"><UserRound className="h-5 w-5 text-primary" /> {isEn ? 'Personal Information' : 'ব্যক্তিগত তথ্য'}</CardTitle>
                                             </CardHeader>
                                             <CardContent className="pt-6 space-y-3 font-bold text-sm">
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">পূর্ণ নাম (বাংলা):</span> <span>{studentData.studentNameBn}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">নাম (ইংরেজি):</span> <span>{studentData.studentNameEn || '-'}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">জন্ম তারিখ:</span> <span>{studentData.dob ? toBengaliNumber(format(new Date(studentData.dob), "dd-MM-yyyy")) : '-'}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">জন্ম নিবন্ধন:</span> <span>{toBengaliNumber(studentData.birthRegNo || '-')}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">লিঙ্গ:</span> <span>{studentData.gender === 'male' ? 'পুরুষ' : studentData.gender === 'female' ? 'মহিলা' : studentData.gender || '-'}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">ধর্ম:</span> <span>{religionMapBn[studentData.religion?.toLowerCase() || ''] || studentData.religion || 'অন্যান্য'}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">বিভাগ/শাখা:</span> <span className="capitalize">{studentData.group || 'সাধারণ'}</span></div>
-                                                {studentData.optionalSubject && <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">ঐচ্ছিক বিষয়:</span> <span>{studentData.optionalSubject}</span></div>}
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Full Name (Bangla):' : 'পূর্ণ নাম (বাংলা):'}</span> <span>{studentData.studentNameBn}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Name (English):' : 'নাম (ইংরেজি):'}</span> <span>{studentData.studentNameEn || '-'}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Date of Birth:' : 'জন্ম তারিখ:'}</span> <span>{studentData.dob ? toBengaliNumber(format(new Date(studentData.dob), "dd-MM-yyyy")) : '-'}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Birth Reg. No:' : 'জন্ম নিবন্ধন:'}</span> <span>{toBengaliNumber(studentData.birthRegNo || '-')}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Gender:' : 'লিঙ্গ:'}</span> <span>{studentData.gender === 'male' ? (isEn ? 'Male' : 'পুরুষ') : studentData.gender === 'female' ? (isEn ? 'Female' : 'মহিলা') : studentData.gender || '-'}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Religion:' : 'ধর্ম:'}</span> <span>{religionMapBn[studentData.religion?.toLowerCase() || ''] || studentData.religion || 'অন্যান্য'}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Section/Group:' : 'বিভাগ/শাখা:'}</span> <span className="capitalize">{studentData.group || (isEn ? 'General' : 'সাধারণ')}</span></div>
+                                                {studentData.optionalSubject && <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? 'Optional Subject:' : 'ঐচ্ছিক বিষয়:'}</span> <span>{studentData.optionalSubject}</span></div>}
                                             </CardContent>
                                         </Card>
 
                                         {/* Guardian Info */}
                                         <Card className="border-[4px] border-black rounded-xl bg-white shadow-[6px_6px_0px_rgba(0,0,0,0.1)] overflow-hidden">
                                             <CardHeader className="bg-primary/5 border-b-2 border-black/10">
-                                                <CardTitle className="text-lg font-black flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> অভিভাবকের তথ্য</CardTitle>
+                                                <CardTitle className="text-lg font-black flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> {isEn ? 'Guardian Information' : 'অভিভাবকের তথ্য'}</CardTitle>
                                             </CardHeader>
                                             <CardContent className="pt-6 space-y-3 font-bold text-sm">
-                                                <div className="flex justify-between border-b pb-2"><span>পিতার নাম (বাংলা):</span> <span>{studentData.fatherNameBn}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">পিতার নাম (ইংরেজি):</span> <span>{studentData.fatherNameEn || '-'}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span>পিতার NID:</span> <span>{toBengaliNumber(studentData.fatherNid || '-')}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span>মাতার নাম (বাংলা):</span> <span>{studentData.motherNameBn}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">মাতার নাম (ইংরেজি):</span> <span>{studentData.motherNameEn || '-'}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span>মাতার NID:</span> <span>{toBengaliNumber(studentData.motherNid || '-')}</span></div>
-                                                <div className="flex justify-between border-b pb-2"><span>অভিভাবক মোবাইল:</span> <span className="text-primary font-black">{toBengaliNumber(studentData.guardianMobile || '-')}</span></div>
-                                                <div className="flex justify-between"><span>শিক্ষার্থী মোবাইল:</span> <span>{toBengaliNumber(studentData.studentMobile || '-')}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span>{isEn ? "Father's Name (Bangla):" : "পিতার নাম (বাংলা):"}</span> <span>{studentData.fatherNameBn}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? "Father's Name (English):" : "পিতার নাম (ইংরেজি):"}</span> <span>{studentData.fatherNameEn || '-'}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span>{isEn ? "Father's NID:" : "পিতার NID:"}</span> <span>{toBengaliNumber(studentData.fatherNid || '-')}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span>{isEn ? "Mother's Name (Bangla):" : "মাতার নাম (বাংলা):"}</span> <span>{studentData.motherNameBn}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground font-medium">{isEn ? "Mother's Name (English):" : "মাতার নাম (ইংরেজি):"}</span> <span>{studentData.motherNameEn || '-'}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span>{isEn ? "Mother's NID:" : "মাতার NID:"}</span> <span>{toBengaliNumber(studentData.motherNid || '-')}</span></div>
+                                                <div className="flex justify-between border-b pb-2"><span>{isEn ? "Guardian Mobile:" : "অভিভাবক মোবাইল:"}</span> <span className="text-primary font-black">{toBengaliNumber(studentData.guardianMobile || '-')}</span></div>
+                                                <div className="flex justify-between"><span>{isEn ? "Student Mobile:" : "শিক্ষার্থী মোবাইল:"}</span> <span>{toBengaliNumber(studentData.studentMobile || '-')}</span></div>
                                             </CardContent>
                                         </Card>
 
@@ -568,21 +578,21 @@ function StudentProfileSearchContent() {
                                                     <span>{studentData.previousSchool || '-'}</span>
                                                 </div>
                                                 <div className="flex justify-between border-b pb-2">
-                                                    <span className="text-muted-foreground font-medium">রেজিষ্ট্রেশন নম্বর:</span>
+                                                    <span className="text-muted-foreground font-medium">{isEn ? "Registration No:" : "রেজিষ্ট্রেশন নম্বর:"}</span>
                                                     <span className="font-black text-blue-800">{toBengaliNumber(studentData.prevRegNo || '-')}</span>
                                                 </div>
                                                 <div className="flex justify-between border-b pb-2">
-                                                    <span className="text-muted-foreground font-medium">পাসের সন:</span>
+                                                    <span className="text-muted-foreground font-medium">{isEn ? "Passing Year:" : "পাসের সন:"}</span>
                                                     <span>{toBengaliNumber(studentData.prevPassingYear || '-')}</span>
                                                 </div>
                                                 <div className="flex justify-between border-b pb-2">
-                                                    <span className="text-muted-foreground font-medium">বোর্ড:</span>
+                                                    <span className="text-muted-foreground font-medium">{isEn ? "Board:" : "বোর্ড:"}</span>
                                                     <span>{studentData.prevBoard || '-'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-muted-foreground font-medium">উপবৃত্তি পায় কি না:</span>
                                                     <span className={cn("font-black", studentData.isStipendReceiver ? "text-emerald-700" : "text-slate-400")}>
-                                                        {studentData.isStipendReceiver ? 'হ্যাঁ' : 'না'}
+                                                        {studentData.isStipendReceiver ? (isEn ? 'Yes' : 'হ্যাঁ') : (isEn ? 'No' : 'না')}
                                                     </span>
                                                 </div>
                                             </CardContent>
@@ -595,19 +605,19 @@ function StudentProfileSearchContent() {
                                             </CardHeader>
                                             <CardContent className="pt-6 space-y-6">
                                                 <div className="p-3 bg-slate-50 rounded-lg border-2 border-dashed">
-                                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">বর্তমান ঠিকানা</p>
+                                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{isEn ? "PRESENT ADDRESS" : "বর্তমান ঠিকানা"}</p>
                                                     <p className="text-sm font-bold leading-relaxed">
                                                         গ্রাম: {studentData.presentVillage || '-'}, ইউনিয়ন: {studentData.presentUnion || '-'}<br/>
-                                                        ডাকঘর: {studentData.presentPostOffice || '-'}, উপজেলা: {studentData.presentUpazila || 'বীরগঞ্জ'}<br/>
-                                                        জেলা: {studentData.presentDistrict || 'দিনাজপুর'}
+                                                        {isEn ? "Post Office:" : "ডাকঘর:"} {studentData.presentPostOffice || '-'}, {isEn ? "Upazila:" : "উপজেলা:"} {studentData.presentUpazila || 'বীরগঞ্জ'}<br/>
+                                                        {isEn ? "District:" : "জেলা:"} {studentData.presentDistrict || 'দিনাজপুর'}
                                                     </p>
                                                 </div>
                                                 <div className="p-3 bg-slate-50 rounded-lg border-2 border-dashed">
                                                     <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">স্থায়ী ঠিকানা</p>
                                                     <p className="text-sm font-bold leading-relaxed">
                                                         গ্রাম: {studentData.permanentVillage || '-'}, ইউনিয়ন: {studentData.permanentUnion || '-'}<br/>
-                                                        ডাকঘর: {studentData.permanentPostOffice || '-'}, উপজেলা: {studentData.permanentUpazila || 'বীরগঞ্জ'}<br/>
-                                                        জেলা: {studentData.permanentDistrict || 'দিনাজপুর'}
+                                                        {isEn ? "Post Office:" : "ডাকঘর:"} {studentData.permanentPostOffice || '-'}, {isEn ? "Upazila:" : "উপজেলা:"} {studentData.permanentUpazila || 'বীরগঞ্জ'}<br/>
+                                                        {isEn ? "District:" : "জেলা:"} {studentData.permanentDistrict || 'দিনাজপুর'}
                                                     </p>
                                                 </div>
                                             </CardContent>
@@ -834,7 +844,7 @@ function StudentProfileSearchContent() {
                             <h1 className="text-3xl font-black text-[#2d572c] mb-0.5">{schoolInfo.name}</h1>
                             <p className="text-base font-bold text-slate-700">{schoolInfo.address}</p>
                             <div className="mt-2 inline-block border-2 border-[#2d572c] px-6 py-0.5 rounded-full bg-[#f0faf9]">
-                                <h2 className="text-lg font-black uppercase text-[#2d572c]">শিক্ষার্থী প্রগতি ও প্রোফাইল রিপোর্ট - {toBengaliNumber(selectedYear)}</h2>
+                                <h2 className="text-lg font-black uppercase text-[#2d572c]">{isEn ? `Student Progress & Profile Report - ${selectedYear}` : `শিক্ষার্থী প্রগতি ও প্রোফাইল রিপোর্ট - ${toBengaliNumber(selectedYear)}`}</h2>
                             </div>
                         </div>
                         <div className="w-16 h-16"></div>
@@ -844,15 +854,15 @@ function StudentProfileSearchContent() {
                     <div className="flex justify-between items-start gap-8 mb-6">
                         <div className="flex-1 space-y-2.5 font-bold text-sm">
                             <div className="flex items-center gap-2 border-b border-slate-300 pb-1">
-                                <span className="w-32 text-slate-600">শিক্ষার্থীর নাম</span>
+                                <span className="w-32 text-slate-600">{isEn ? "Student Name" : "শিক্ষার্থীর নাম"}</span>
                                 <span className="font-black">: {studentData.studentNameBn}</span>
                             </div>
                             <div className="flex items-center gap-2 border-b border-slate-300 pb-1">
-                                <span className="w-32 text-slate-600">রোল ও শ্রেণি</span>
+                                <span className="w-32 text-slate-600">{isEn ? "Roll & Class" : "রোল ও শ্রেণি"}</span>
                                 <span className="font-black">: {toBengaliNumber(studentData.roll)}, {classNamesMap[studentData.className]} শ্রেণি</span>
                             </div>
                             <div className="flex items-center gap-2 border-b border-slate-300 pb-1">
-                                <span className="w-32 text-slate-600">শিক্ষার্থী আইডি</span>
+                                <span className="w-32 text-slate-600">{isEn ? "Student ID" : "শিক্ষার্থী আইডি"}</span>
                                 <span className="font-black">: {toBengaliNumber(studentData.generatedId || '-')}</span>
                             </div>
                             <div className="flex items-center gap-2 border-b border-slate-300 pb-1">
@@ -860,11 +870,11 @@ function StudentProfileSearchContent() {
                                 <span className="font-black">: {studentData.fatherNameBn}</span>
                             </div>
                             <div className="flex items-center gap-2 border-b border-slate-300 pb-1">
-                                <span className="w-32 text-slate-600">মাতার নাম</span>
+                                <span className="w-32 text-slate-600">{isEn ? "Mother's Name" : "মাতার নাম"}</span>
                                 <span className="font-black">: {studentData.motherNameBn}</span>
                             </div>
                             <div className="flex items-center gap-2 border-b border-slate-300 pb-1">
-                                <span className="w-32 text-slate-600">মোবাইল নম্বর</span>
+                                <span className="w-32 text-slate-600">{isEn ? "Mobile No." : "মোবাইল নম্বর"}</span>
                                 <span className="font-black">: {toBengaliNumber(studentData.guardianMobile || '-')}</span>
                             </div>
                         </div>
@@ -877,19 +887,19 @@ function StudentProfileSearchContent() {
                     <div className="grid grid-cols-2 gap-8 mb-6">
                         {/* Attendance Card */}
                         <div className="space-y-2">
-                            <h3 className="text-lg font-black text-slate-800 border-l-4 border-[#2418ff] pl-2">হাজিরা পরিসংখ্যান</h3>
+                            <h3 className="text-lg font-black text-slate-800 border-l-4 border-[#2418ff] pl-2">{isEn ? "Attendance Statistics" : "হাজিরা পরিসংখ্যান"}</h3>
                             <div className="border-[2px] border-black rounded-2xl p-4 bg-white shadow-md space-y-2 font-bold text-xs">
                                 <div className="flex justify-between border-b border-dashed border-slate-200 pb-1">
-                                    <span className="text-slate-600">মোট কার্যদিবস:</span>
+                                    <span className="text-slate-600">{isEn ? "Total Working Days:" : "মোট কার্যদিবস:"}</span>
                                     <span className="font-black">{toBengaliNumber(attendanceStats.total)} দিন</span>
                                 </div>
                                 <div className="flex justify-between border-b border-dashed border-slate-200 pb-1">
                                     <span className="text-emerald-700">মোট উপস্থিত:</span>
-                                    <span className="font-black text-emerald-700">{toBengaliNumber(attendanceStats.present)} দিন</span>
+                                    <span className="font-black text-emerald-700">{toBengaliNumber(attendanceStats.present)} {isEn ? "days" : "দিন"}</span>
                                 </div>
                                 <div className="flex justify-between border-b border-dashed border-slate-200 pb-1 text-rose-600">
                                     <span>মোট অনুপস্থিত:</span>
-                                    <span className="font-black">{toBengaliNumber(attendanceStats.absent)} দিন</span>
+                                    <span className="font-black">{toBengaliNumber(attendanceStats.absent)} {isEn ? "days" : "দিন"}</span>
                                 </div>
                                 <div className="flex justify-between pt-1 font-black text-blue-700">
                                     <span>উপস্থিতির হার:</span>
@@ -929,10 +939,10 @@ function StudentProfileSearchContent() {
                             <table className="w-full text-center border-collapse text-xs">
                                 <thead className="bg-slate-100">
                                     <tr className="border-b-[2px] border-black h-10">
-                                        <th className="border-r-[1.5px] border-black font-black px-4 text-left">পরীক্ষার নাম</th>
-                                        <th className="border-r-[1.5px] border-black font-black px-4">মোট নম্বর</th>
+                                        <th className="border-r-[1.5px] border-black font-black px-4 text-left">{isEn ? "Exam Name" : "পরীক্ষার নাম"}</th>
+                                        <th className="border-r-[1.5px] border-black font-black px-4">{isEn ? "Total Marks" : "মোট নম্বর"}</th>
                                         <th className="border-r-[1.5px] border-black font-black px-4">GPA</th>
-                                        <th className="font-black px-4 text-right">মেধাস্থান</th>
+                                        <th className="font-black px-4 text-right">{isEn ? "Position" : "মেধাস্থান"}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -955,8 +965,8 @@ function StudentProfileSearchContent() {
 
                     {/* Signatures Footer - Reduced mt to fit on one page */}
                     <div className="mt-12 flex justify-between px-16">
-                        <div className="text-center w-40 border-t-[1.5px] border-black pt-1 font-black text-sm">শ্রেণি শিক্ষকের স্বাক্ষর</div>
-                        <div className="text-center w-40 border-t-[1.5px] border-black pt-1 font-black text-sm">প্রধান শিক্ষকের স্বাক্ষর</div>
+                        <div className="text-center w-40 border-t-[1.5px] border-black pt-1 font-black text-sm">{isEn ? "Class Teacher's Signature" : "শ্রেণি শিক্ষকের স্বাক্ষর"}</div>
+                        <div className="text-center w-40 border-t-[1.5px] border-black pt-1 font-black text-sm">{isEn ? "Headmaster's Signature" : "প্রধান শিক্ষকের স্বাক্ষর"}</div>
                     </div>
                     
                     <div className="mt-8 text-center text-[9px] text-slate-400 border-t border-dashed pt-2 flex justify-between">

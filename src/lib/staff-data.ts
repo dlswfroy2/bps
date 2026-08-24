@@ -49,9 +49,12 @@ export type UpdateStaffData = Partial<Omit<Staff, 'id' | 'createdAt' | 'updatedA
 // To handle data from Firestore
 export const staffFromDoc = (doc: DocumentData): Staff => {
     const data = doc.data();
+
     return {
         id: doc.id,
         ...data,
+        nameBn: data.nameBn || '',
+        nameEn: data.nameEn || '',
         joinDate: data.joinDate instanceof Timestamp ? data.joinDate.toDate() : data.joinDate,
         dob: data.dob instanceof Timestamp ? data.dob.toDate() : data.dob,
         createdAt: data.createdAt,

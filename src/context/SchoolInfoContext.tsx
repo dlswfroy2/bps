@@ -7,6 +7,7 @@ import { doc, onSnapshot, FirestoreError } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/components/GoogleTranslateProvider';
 
 type SchoolInfoContextType = {
   schoolInfo: SchoolInfo;
@@ -19,6 +20,7 @@ const SchoolInfoContext = createContext<SchoolInfoContextType | undefined>(undef
 export function SchoolInfoProvider({ children }: { children: ReactNode }) {
   const db = useFirestore();
   const { user } = useAuth();
+  const { currentLang } = useLanguage();
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>(defaultSchoolInfo);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -58,11 +60,21 @@ export function SchoolInfoProvider({ children }: { children: ReactNode }) {
     return saveSchoolInfo(db, updatedInfo);
   }, [db, schoolInfo]);
 
+  const effectiveSchoolInfo = useMemo(() => {
+    if (currentLang === 'en' && schoolInfo.nameEn) {
+      return {
+        ...schoolInfo,
+        name: schoolInfo.nameEn,
+      };
+    }
+    return schoolInfo;
+  }, [schoolInfo, currentLang]);
+
   const value = useMemo(() => ({
-    schoolInfo,
+    schoolInfo: effectiveSchoolInfo,
     updateSchoolInfo,
     isLoading
-  }), [schoolInfo, updateSchoolInfo, isLoading]);
+  }), [effectiveSchoolInfo, updateSchoolInfo, isLoading]);
 
   return (
     <SchoolInfoContext.Provider value={value}>

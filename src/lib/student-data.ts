@@ -153,9 +153,17 @@ export const studentFromDoc = (doc: DocumentData): Student => {
 
     const photoUrl = sanitizePhotoUrl(data.photoUrl, data.gender);
 
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
+    const studentNameBn = (isEn && data.studentNameEn && data.studentNameEn.trim()) ? data.studentNameEn.trim() : data.studentNameBn;
+    const fatherNameBn = (isEn && data.fatherNameEn && data.fatherNameEn.trim()) ? data.fatherNameEn.trim() : data.fatherNameBn;
+    const motherNameBn = (isEn && data.motherNameEn && data.motherNameEn.trim()) ? data.motherNameEn.trim() : data.motherNameBn;
+
     return {
         id: doc.id,
         ...data,
+        studentNameBn,
+        fatherNameBn,
+        motherNameBn,
         photoUrl,
         generatedId,
         dob: data.dob instanceof Timestamp ? data.dob.toDate() : data.dob,

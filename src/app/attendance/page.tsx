@@ -938,6 +938,7 @@ const QuickRollAttendanceTab = ({ allStudents, date, onDateChange }: { allStuden
 };
 
 const MonthlySummaryBoard = ({ allStudents }: { allStudents: Student[] }) => {
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
     const db = useFirestore();
     const { schoolInfo } = useSchoolInfo();
     const { selectedYear } = useAcademicYear();
@@ -1187,6 +1188,7 @@ const MonthlySummaryBoard = ({ allStudents }: { allStudents: Student[] }) => {
 };
 
 const MissedAttendanceTab = ({ onTakeAttendance }: { onTakeAttendance: (date: Date) => void }) => {
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
     const db = useFirestore();
     const { selectedYear } = useAcademicYear();
     const { toast } = useToast();
@@ -1346,6 +1348,7 @@ const MissedAttendanceTab = ({ onTakeAttendance }: { onTakeAttendance: (date: Da
 };
 
 const AbsentStudentListTab = ({ allStudents }: { allStudents: Student[] }) => {
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
     const db = useFirestore();
     const { selectedYear } = useAcademicYear();
     const { toast } = useToast();

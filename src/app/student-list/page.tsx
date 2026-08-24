@@ -151,6 +151,7 @@ function StudentListContent() {
   const targetClass = searchParams.get('class');
   const targetStudentId = searchParams.get('studentId');
 
+  const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -546,7 +547,7 @@ function StudentListContent() {
                             </div>
                             <div>
                                 <CardTitle className="text-xl font-black text-slate-800">{sidebarItems.find(i => i.id === activeSection)?.label}</CardTitle>
-                                <p className="text-xs font-bold text-muted-foreground">শিক্ষাবর্ষ: {toBengaliNumber(selectedYear)} | শ্রেণি: {classNamesMap[activeTab]} শ্রেণি</p>
+                                <p className="text-xs font-bold text-muted-foreground notranslate" translate="no">{isEn ? `Academic Year: ${selectedYear} | Class: Class ${activeTab}` : `শিক্ষাবর্ষ: ${toBengaliNumber(selectedYear)} | শ্রেণি: ${classNamesMap[activeTab]} শ্রেণি`}</p>
                             </div>
                         </div>
 
@@ -589,23 +590,23 @@ function StudentListContent() {
 
                     {activeSection === 'list' && (
                         <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-muted/20 rounded-2xl border-2 border-dashed border-primary/10 no-print">
-                            <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="h-9 px-3 rounded-lg border-2 bg-white text-xs font-bold text-blue-700 outline-none">
-                                <option value="all">ছাত্র-ছাত্রী ({toBengaliNumber(classStats.gender.all)})</option>
-                                <option value="male">ছাত্র ({toBengaliNumber(classStats.gender.male)})</option>
-                                <option value="female">ছাত্রী ({toBengaliNumber(classStats.gender.female)})</option>
+                            <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="h-9 px-3 rounded-lg border-2 bg-white text-xs font-bold text-blue-700 outline-none notranslate" translate="no">
+                                <option value="all">{isEn ? `Students (${classStats.gender.all})` : `ছাত্র-ছাত্রী (${toBengaliNumber(classStats.gender.all)})`}</option>
+                                <option value="male">{isEn ? `Male (${classStats.gender.male})` : `ছাত্র (${toBengaliNumber(classStats.gender.male)})`}</option>
+                                <option value="female">{isEn ? `Female (${classStats.gender.female})` : `ছাত্রী (${toBengaliNumber(classStats.gender.female)})`}</option>
                             </select>
-                            <select value={filterReligion} onChange={(e) => setFilterReligion(e.target.value)} className="h-9 px-3 rounded-lg border-2 bg-white text-xs font-bold text-primary outline-none">
-                                <option value="all">সকল ধর্ম ({toBengaliNumber(classStats.religion.all)})</option>
-                                <option value="islam">ইসলাম ({toBengaliNumber(classStats.religion.islam)})</option>
-                                <option value="hindu">হিন্দু ({toBengaliNumber(classStats.religion.hinduism)})</option>
-                                <option value="christian">খ্রিস্টান ({toBengaliNumber(classStats.religion.christianity)})</option>
-                                <option value="other">অন্যান্য ({toBengaliNumber(classStats.religion.other)})</option>
+                            <select value={filterReligion} onChange={(e) => setFilterReligion(e.target.value)} className="h-9 px-3 rounded-lg border-2 bg-white text-xs font-bold text-primary outline-none notranslate" translate="no">
+                                <option value="all">{isEn ? `All Religions (${classStats.religion.all})` : `সকল ধর্ম (${toBengaliNumber(classStats.religion.all)})`}</option>
+                                <option value="islam">{isEn ? `Islam (${classStats.religion.islam})` : `ইসলাম (${toBengaliNumber(classStats.religion.islam)})`}</option>
+                                <option value="hindu">{isEn ? `Hindu (${classStats.religion.hinduism})` : `হিন্দু (${toBengaliNumber(classStats.religion.hinduism)})`}</option>
+                                <option value="christian">{isEn ? `Christian (${classStats.religion.christianity})` : `খ্রিস্টান (${toBengaliNumber(classStats.religion.christianity)})`}</option>
+                                <option value="other">{isEn ? `Other (${classStats.religion.other})` : `অন্যান্য (${toBengaliNumber(classStats.religion.other)})`}</option>
                             </select>
-                            <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className="h-9 px-3 rounded-lg border-2 bg-white text-xs font-bold text-emerald-700 outline-none">
-                                <option value="all">সকল বিভাগ ({toBengaliNumber(classStats.group.all)})</option>
-                                <option value="science">বিজ্ঞান ({toBengaliNumber(classStats.group.science)})</option>
-                                <option value="arts">মানবিক ({toBengaliNumber(classStats.group.arts)})</option>
-                                <option value="commerce">ব্যবসায় শিক্ষা ({toBengaliNumber(classStats.group.commerce)})</option>
+                            <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className="h-9 px-3 rounded-lg border-2 bg-white text-xs font-bold text-emerald-700 outline-none notranslate" translate="no">
+                                <option value="all">{isEn ? `All Groups (${classStats.group.all})` : `সকল বিভাগ (${toBengaliNumber(classStats.group.all)})`}</option>
+                                <option value="science">{isEn ? `Science (${classStats.group.science})` : `বিজ্ঞান (${toBengaliNumber(classStats.group.science)})`}</option>
+                                <option value="arts">{isEn ? `Humanities (${classStats.group.arts})` : `মানবিক (${toBengaliNumber(classStats.group.arts)})`}</option>
+                                <option value="commerce">{isEn ? `Business Studies (${classStats.group.commerce})` : `ব্যবসায় শিক্ষা (${toBengaliNumber(classStats.group.commerce)})`}</option>
                             </select>
                             
                             <div className="ml-auto flex items-center gap-2">
@@ -640,9 +641,11 @@ function StudentListContent() {
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="no-print">
                         <TabsList className="grid w-full grid-cols-5 h-12 bg-slate-100 p-1 rounded-2xl mb-8">
                             {classes.map((c) => (
-                                <TabsTrigger key={c} value={c} className="font-black text-xs sm:text-sm rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md">
-                                    {classNamesMap[c]} শ্রেণি 
-                                    <Badge variant="secondary" className="ml-2 h-5 bg-primary/10 text-primary border-none hidden sm:inline-flex">{toBengaliNumber(allStudents.filter(s => s.academicYear === selectedYear && s.className === c).length)}</Badge>
+                                <TabsTrigger key={c} value={c} className="font-black text-xs sm:text-sm rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md notranslate" translate="no">
+                                    {isEn ? `Class ${c}` : `${classNamesMap[c]} শ্রেণি`} 
+                                    <Badge variant="secondary" className="ml-2 h-5 bg-primary/10 text-primary border-none hidden sm:inline-flex notranslate" translate="no">
+                                        {isEn ? allStudents.filter(s => s.academicYear === selectedYear && s.className === c).length : toBengaliNumber(allStudents.filter(s => s.academicYear === selectedYear && s.className === c).length)}
+                                    </Badge>
                                 </TabsTrigger>
                             ))}
                         </TabsList>

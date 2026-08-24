@@ -125,6 +125,18 @@ const parseSubjectTeacher = (cell: string): { subject: string, teacher: string |
     return { subject, teacher };
 };
 
+
+const isEnActive = () => typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
+
+const getStaffDisplayName = (staff?: Staff | null) => {
+    if (!staff) return '';
+    const isEn = isEnActive();
+    if (isEn && staff.nameEn && staff.nameEn.trim()) {
+        return staff.nameEn.trim();
+    }
+    return staff.nameBn || '';
+};
+
 // --- Sub Tab: Staff Profile Section ---
 const StaffProfileTab = ({ staffList, academicYear }: { staffList: Staff[], academicYear: string }) => {
     const db = useFirestore();
@@ -231,7 +243,7 @@ const StaffProfileTab = ({ staffList, academicYear }: { staffList: Staff[], acad
                         <SelectTrigger className="h-11 bg-slate-50 border-2 font-bold"><SelectValue placeholder="নাম সিলেক্ট করুন" /></SelectTrigger>
                         <SelectContent>
                             {staffList.map(s => (
-                                <SelectItem key={s.id} value={s.id}>{s.nameBn} ({s.designation})</SelectItem>
+                                <SelectItem key={s.id} value={s.id}>{getStaffDisplayName(s)} ({s.designation})</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -264,7 +276,7 @@ const StaffProfileTab = ({ staffList, academicYear }: { staffList: Staff[], acad
                                 </div>
                             </div>
                             <CardContent className="pt-16 text-center pb-8">
-                                <h2 className="text-2xl font-black text-slate-900">{selectedStaff.nameBn}</h2>
+                                <h2 className="text-2xl font-black text-slate-900">{getStaffDisplayName(selectedStaff)}</h2>
                                 <p className="font-bold text-primary mb-4">{selectedStaff.designation}</p>
                                 <div className="flex justify-center gap-2">
                                     <Badge variant="outline" className="bg-primary/5 font-black border-primary/20">{selectedStaff.employeeId}</Badge>
@@ -460,6 +472,7 @@ export default function StaffListPage() {
   const canViewAttendanceReport = hasPermission('view:staff-attendance-report');
 
   const [activeSection, setActiveSection] = useState('list');
+  const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [dailyAttendance, setDailyAttendance] = useState<StaffDailyAttendance | null>(null);
@@ -679,22 +692,22 @@ export default function StaffListPage() {
         <Table>
             <TableHeader className="bg-muted/50 sticky top-0 z-20">
             <TableRow>
-                <TableHead className="w-16">ক্রমিক</TableHead>
-                <TableHead className="w-16">ছবি</TableHead>
-                <TableHead>নাম</TableHead>
-                <TableHead>পদবি</TableHead>
-                <TableHead>মোবাইল</TableHead>
-                <TableHead className="text-right">কার্যক্রম</TableHead>
+                <TableHead className="w-16">{isEn ? 'SL' : 'ক্রমিক'}</TableHead>
+                <TableHead className="w-16">{isEn ? 'Photo' : 'ছবি'}</TableHead>
+                <TableHead>{isEn ? 'Name' : 'নাম'}</TableHead>
+                <TableHead>{isEn ? 'Designation' : 'পদবি'}</TableHead>
+                <TableHead>{isEn ? 'Mobile' : 'মোবাইল'}</TableHead>
+                <TableHead className="text-right">{isEn ? 'Actions' : 'কার্যক্রম'}</TableHead>
             </TableRow>
             </TableHeader>
             <TableBody>
             {data.map((staff, index) => (
                 <TableRow key={staff.id} className="hover:bg-muted/10 h-14">
-                    <TableCell className="font-bold">{toBengaliNumber(startIdx + index + 1)}</TableCell>
+                    <TableCell className="font-bold">{isEn ? (startIdx + index + 1) : toBengaliNumber(startIdx + index + 1)}</TableCell>
                     <TableCell>
-                        <Image src={staff.photoUrl || 'https://picsum.photos/seed/staff/40/40'} alt={staff.nameBn} width={40} height={40} className="rounded-full object-cover border shadow-sm" />
+                        <Image src={staff.photoUrl || 'https://picsum.photos/seed/staff/40/40'} alt={getStaffDisplayName(staff)} width={40} height={40} className="rounded-full object-cover border shadow-sm" />
                     </TableCell>
-                    <TableCell className={cn("whitespace-nowrap font-black text-base", colorClass)}>{staff.nameBn}</TableCell>
+                    <TableCell className={cn("whitespace-nowrap font-black text-base notranslate", colorClass)} translate="no">{getStaffDisplayName(staff)}</TableCell>
                     <TableCell className="whitespace-nowrap font-bold text-xs">{staff.designation}</TableCell>
                     <TableCell className="text-xs font-bold">{toBengaliNumber(staff.mobile)}</TableCell>
                     <TableCell className="text-right">
@@ -733,10 +746,10 @@ export default function StaffListPage() {
                         <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-primary/30 to-transparent blur-sm group-hover:blur-md transition-all"></div>
                         <Avatar className="h-24 w-24 border-4 border-white shadow-lg relative">
                             <AvatarImage src={staff.photoUrl} className="object-cover" />
-                            <AvatarFallback className="font-black text-2xl bg-muted text-muted-foreground">{staff.nameBn.charAt(0)}</AvatarFallback>
+                            <AvatarFallback className="font-black text-2xl bg-muted text-muted-foreground">{getStaffDisplayName(staff).charAt(0)}</AvatarFallback>
                         </Avatar>
                     </div>
-                    <h3 className={cn("font-black text-lg line-clamp-1 leading-tight mb-1", colorClass)}>{staff.nameBn}</h3>
+                    <h3 className={cn("font-black text-lg line-clamp-1 leading-tight mb-1 notranslate", colorClass)} translate="no">{getStaffDisplayName(staff)}</h3>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{staff.designation}</p>
                     <div className="mt-3 pt-3 border-t border-dashed w-full flex flex-col gap-1">
                         <p className="text-xs font-black text-slate-700 flex items-center justify-center gap-1.5">
@@ -968,7 +981,7 @@ export default function StaffListPage() {
                         <section>
                             <div className="flex items-center gap-2 mb-6 px-2">
                                 <div className="h-6 w-1.5 bg-orange-500 rounded-full" />
-                                <h3 className="text-xl font-black text-orange-950">শিক্ষকবৃন্দের তালিকা ({toBengaliNumber(sortedTeachers.length)} জন)</h3>
+                                <h3 className="text-xl font-black text-orange-950">{isEn ? `Teachers List (${sortedTeachers.length})` : `শিক্ষকবৃন্দের তালিকা (${toBengaliNumber(sortedTeachers.length)} জন)`}</h3>
                             </div>
                             {viewMode === 'table' ? (
                                 <StaffTable data={sortedTeachers} colorClass="text-blue-700" />
@@ -979,7 +992,7 @@ export default function StaffListPage() {
                         <section>
                             <div className="flex items-center gap-2 mb-6 px-2">
                                 <div className="h-6 w-1.5 bg-blue-500 rounded-full" />
-                                <h3 className="text-xl font-black text-blue-950">কর্মচারীবৃন্দের তালিকা ({toBengaliNumber(sortedEmployees.length)} জন)</h3>
+                                <h3 className="text-xl font-black text-blue-950">{isEn ? `Staff List (${sortedEmployees.length})` : `কর্মচারীবৃন্দের তালিকা (${toBengaliNumber(sortedEmployees.length)} জন)`}</h3>
                             </div>
                             {viewMode === 'table' ? (
                                 <StaffTable data={sortedEmployees} startIdx={sortedTeachers.length} colorClass="text-primary" />
@@ -1019,7 +1032,7 @@ export default function StaffListPage() {
                                     </SelectTrigger>
                                     <SelectContent className="max-h-[300px]">
                                         {activeStaffList.map(s => (
-                                            <SelectItem key={s.id} value={s.id} className="font-bold">{s.nameBn} ({s.designation})</SelectItem>
+                                            <SelectItem key={s.id} value={s.id} className="font-bold">{getStaffDisplayName(s)} ({s.designation})</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -1047,7 +1060,7 @@ export default function StaffListPage() {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1">
-                                            <CardTitle className="text-2xl font-black text-slate-900">{currentSelectedStaff.nameBn}</CardTitle>
+                                            <CardTitle className="text-2xl font-black text-slate-900">{getStaffDisplayName(currentSelectedStaff)}</CardTitle>
                                             <CardDescription className="text-primary font-bold text-base">
                                                 {currentSelectedStaff.designation}
                                             </CardDescription>
@@ -1336,13 +1349,14 @@ export default function StaffListPage() {
                     <DialogHeader className="flex-row items-center gap-4">
                         <Image src={staffToView.photoUrl || 'https://picsum.photos/seed/staff/96/96'} alt={staffToView.nameBn} width={80} height={80} className="rounded-lg object-cover border shadow-sm" />
                         <div>
-                            <DialogTitle className="text-2xl mb-1 font-black">{staffToView.nameBn}</DialogTitle>
+                            <DialogTitle className="text-2xl mb-1 font-black notranslate" translate="no">{getStaffDisplayName(staffToView)}</DialogTitle>
                             <DialogDescription className="font-black text-primary">{staffToView.designation}</DialogDescription>
                         </div>
                     </DialogHeader>
                     <div className="max-h-[60vh] overflow-y-auto pr-4 scrollbar-thin">
                         <div className="space-y-4 py-4 text-sm font-bold text-slate-700">
-                            <p className="flex justify-between border-b pb-1.5"><span className="text-muted-foreground font-medium">নাম (ইংরেজি):</span> <span>{staffToView.nameEn || 'N/A'}</span></p>
+                            <p className="flex justify-between border-b pb-1.5"><span className="text-muted-foreground font-medium">{isEn ? 'Name (Bangla):' : 'নাম (বাংলা):'}</span> <span className="notranslate" translate="no">{staffToView.nameBn}</span></p>
+                            <p className="flex justify-between border-b pb-1.5"><span className="text-muted-foreground font-medium">{isEn ? 'Name (English):' : 'নাম (ইংরেজি):'}</span> <span className="notranslate" translate="no">{staffToView.nameEn || '-'}</span></p>
                             <p className="flex justify-between border-b pb-1.5"><span className="text-muted-foreground font-medium">জন্ম তারিখ:</span> <span>{staffToView.dob ? toBengaliNumber(format(new Date(staffToView.dob), "dd-MM-yyyy", { locale: bn })) : 'N/A'}</span></p>
                             <p className="flex justify-between border-b pb-1.5"><span className="text-muted-foreground font-medium">ধরন:</span> <span>{staffToView.staffType === 'teacher' ? 'শিক্ষক' : 'কর্মচারী'}</span></p>
                             <p className="flex justify-between border-b pb-1.5"><span className="text-muted-foreground font-medium">বিষয়:</span> <span>{staffToView.subject || 'N/A'}</span></p>

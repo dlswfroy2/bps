@@ -33,6 +33,8 @@ const pt_sans = PT_Sans({
   variable: '--font-pt-sans',
 });
 
+import { GoogleTranslateProvider } from '@/components/GoogleTranslateProvider';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -42,13 +44,15 @@ export default function RootLayout({
     <html lang="bn">
       <body className={cn("font-body antialiased", noto_sans_bengali.variable, pt_sans.variable)}>
         <FirebaseClientProvider>
-          <AuthProvider>
-            <SchoolInfoProvider>
-              <AcademicYearProvider>
-                {children}
-              </AcademicYearProvider>
-            </SchoolInfoProvider>
-          </AuthProvider>
+          <GoogleTranslateProvider>
+            <AuthProvider>
+              <SchoolInfoProvider>
+                <AcademicYearProvider>
+                  {children}
+                </AcademicYearProvider>
+              </SchoolInfoProvider>
+            </AuthProvider>
+          </GoogleTranslateProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>

@@ -729,6 +729,19 @@ const TeacherAllocationTab = ({ staffList, routineData, academicYear }: { staffL
     const db = useFirestore();
     const { toast } = useToast();
     const { hasPermission } = useAuth();
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
+
+    const getTeacherDisplayName = (teacherNameBn: string) => {
+        if (!isEn) return teacherNameBn;
+        const staff = staffList.find(s => 
+            s.nameBn?.trim() === teacherNameBn?.trim() || 
+            (s.nameBn && teacherNameBn && (teacherNameBn.includes(s.nameBn) || s.nameBn.includes(teacherNameBn)))
+        );
+        if (staff && staff.nameEn && staff.nameEn.trim()) {
+            return staff.nameEn.trim();
+        }
+        return teacherNameBn;
+    };
     
     const [selectedTeacher, setSelectedTeacher] = useState<string>('');
     const [selectedClass, setSelectedClass] = useState<string>('6');
@@ -763,37 +776,43 @@ const TeacherAllocationTab = ({ staffList, routineData, academicYear }: { staffL
 
         // Merge DB allocations with scanned allocations
         const merged: TeacherAllocationRecord[] = [];
+        const seenTeachers = new Set<string>();
         
         // Iterate through all staff who are teachers
-        staffList.filter(s => s.staffType === 'teacher').forEach(staff => {
-            const dbRecord = data.find(r => r.teacherName === staff.nameBn);
-            const allocationMap = new Map<string, string>();
-            
-            // Add from DB
-            dbRecord?.allocations.forEach(a => allocationMap.set(`${a.className}|${a.subjectName}`, a.subjectName));
-            
-            // Add from Routine (Sync) by matching short name from routine with full name in profile
-            Object.keys(scanned).forEach(shortName => {
-                // If short name is part of full name or vice versa
-                if (staff.nameBn.includes(shortName) || shortName.includes(staff.nameBn)) {
-                    scanned[shortName].forEach(item => {
-                        const [cls, sub] = item.split('|');
-                        allocationMap.set(`${cls}|${sub}`, sub);
-                    });
-                }
-            });
+        staffList
+            .filter(s => s.staffType === 'teacher' && s.nameBn && s.nameBn.trim() !== '' && s.nameBn.toLowerCase() !== 'no data')
+            .forEach(staff => {
+                if (seenTeachers.has(staff.nameBn)) return;
+                seenTeachers.add(staff.nameBn);
 
-            const finalAllocations: SubjectAllocation[] = Array.from(allocationMap.entries()).map(([key, sub]) => ({
-                className: key.split('|')[0],
-                subjectName: sub
-            }));
+                const dbRecord = data.find(r => r.teacherName === staff.nameBn);
+                const allocationMap = new Map<string, string>();
+                
+                // Add from DB
+                dbRecord?.allocations.forEach(a => allocationMap.set(`${a.className}|${a.subjectName}`, a.subjectName));
+                
+                // Add from Routine (Sync) by matching short name from routine with full name in profile
+                Object.keys(scanned).forEach(shortName => {
+                    // If short name is part of full name or vice versa
+                    if (staff.nameBn.includes(shortName) || shortName.includes(staff.nameBn)) {
+                        scanned[shortName].forEach(item => {
+                            const [cls, sub] = item.split('|');
+                            allocationMap.set(`${cls}|${sub}`, sub);
+                        });
+                    }
+                });
 
-            merged.push({
-                teacherName: staff.nameBn,
-                academicYear,
-                allocations: finalAllocations
+                const finalAllocations: SubjectAllocation[] = Array.from(allocationMap.entries()).map(([key, sub]) => ({
+                    className: key.split('|')[0],
+                    subjectName: sub
+                }));
+
+                merged.push({
+                    teacherName: staff.nameBn,
+                    academicYear,
+                    allocations: finalAllocations
+                });
             });
-        });
 
         setAllocations(merged);
         setIsLoading(false);
@@ -862,7 +881,9 @@ const TeacherAllocationTab = ({ staffList, routineData, academicYear }: { staffL
                             <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
                                 <SelectTrigger className="bg-white"><SelectValue placeholder="শিক্ষক" /></SelectTrigger>
                                 <SelectContent>
-                                    {staffList.filter(s => s.staffType === 'teacher').map(s => <SelectItem key={s.id} value={s.nameBn}>{s.nameBn}</SelectItem>)}
+                                    {staffList.filter(s => s.staffType === 'teacher' && s.nameBn && s.nameBn.toLowerCase() !== 'no data').map((s, idx) => (
+                                        <SelectItem key={`${s.id || s.nameBn}-${idx}`} value={s.nameBn} className="notranslate" translate="no">{getTeacherDisplayName(s.nameBn)}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -870,14 +891,14 @@ const TeacherAllocationTab = ({ staffList, routineData, academicYear }: { staffL
                             <Label className="font-bold">শ্রেণি</Label>
                             <Select value={selectedClass} onValueChange={setSelectedClass}>
                                 <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                                <SelectContent>{Object.entries(classNamesMap).map(([v, l]) => <SelectItem key={v} value={v}>{l} শ্রেণি</SelectItem>)}</SelectContent>
+                                <SelectContent>{Object.entries(classNamesMap).map(([v, l]) => <SelectItem key={v} value={v}>{isEn ? `Class ${v}` : `${l} শ্রেণি`}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
                             <Label className="font-bold">বিষয়</Label>
                             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                                 <SelectTrigger className="bg-white"><SelectValue placeholder="বিষয়" /></SelectTrigger>
-                                <SelectContent>{getSubjects(selectedClass).map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                                <SelectContent>{getSubjects(selectedClass).map((s, idx) => <SelectItem key={`${s.name}-${idx}`} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <Button onClick={handleAddAllocation} disabled={isSaving || !selectedTeacher || !selectedSubject} className="font-black h-10 shadow-md">
@@ -889,14 +910,14 @@ const TeacherAllocationTab = ({ staffList, routineData, academicYear }: { staffL
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {isLoading ? <div className="col-span-full text-center py-20 italic">তথ্য লোড হচ্ছে...</div> : 
-                 allocations.map(record => (
-                    <Card key={record.teacherName} className="border-2 border-black/5 hover:border-primary/20 transition-all shadow-sm rounded-2xl overflow-hidden bg-white">
+                 allocations.map((record, rIdx) => (
+                    <Card key={`${record.teacherName || 'teacher'}-${rIdx}`} className="border-2 border-black/5 hover:border-primary/20 transition-all shadow-sm rounded-2xl overflow-hidden bg-white">
                         <CardHeader className="bg-muted/30 p-4 border-b">
                             <div className="flex items-center gap-3">
                                 <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                                    <AvatarFallback className="bg-primary text-white font-black">{record.teacherName.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback className="bg-primary text-white font-black">{getTeacherDisplayName(record.teacherName).charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <CardTitle className="text-base font-black text-slate-800">{record.teacherName}</CardTitle>
+                                <CardTitle className="text-base font-black text-slate-800 notranslate" translate="no">{getTeacherDisplayName(record.teacherName)}</CardTitle>
                             </div>
                         </CardHeader>
                         <CardContent className="p-4">
@@ -908,7 +929,7 @@ const TeacherAllocationTab = ({ staffList, routineData, academicYear }: { staffL
                                         <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border group">
                                             <div className="flex flex-col">
                                                 <span className="text-[11px] font-black text-blue-900 leading-none">{a.subjectName}</span>
-                                                <span className="text-[9px] font-bold text-muted-foreground mt-1">{classNamesMap[a.className]} শ্রেণি</span>
+                                                <span className="text-[9px] font-bold text-muted-foreground mt-1 notranslate" translate="no">{isEn ? `Class ${a.className}` : `${classNamesMap[a.className]} শ্রেণি`}</span>
                                             </div>
                                             <Button 
                                                 variant="ghost" 
@@ -1112,6 +1133,7 @@ const RoutineStatistics = ({ stats }: { stats: any }) => {
 };
 
 const CombinedRoutineTable = ({ routineData, conflicts, isEditMode, onCellChange, teacherColorMap, isMounted }: { routineData: Record<string, Record<string, string[]>>, conflicts: any, isEditMode: boolean, onCellChange: (cls: string, day: string, periodIdx: number, value: string) => void, teacherColorMap: Map<string, string>, isMounted: boolean }) => {
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
     const days = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার"];
     const classes = ['6', '7', '8', '9', '10'];
     const periods = [ 
@@ -1163,7 +1185,7 @@ const CombinedRoutineTable = ({ routineData, conflicts, isEditMode, onCellChange
                                         {day}
                                     </TableCell>
                                )}
-                               <TableCell className="font-bold border-r text-center bg-gray-50/50 print:bg-white text-xs print:text-[8px] border-green-600">{classNamesMap[cls]}</TableCell>
+                               <TableCell className="font-bold border-r text-center bg-gray-50/50 print:bg-white text-xs print:text-[8px] border-green-600 notranslate" translate="no">{isEn ? `Class ${cls}` : classNamesMap[cls]}</TableCell>
                                {[...Array(3)].map((_, periodIdx) => {
                                    const cellContent = (routineData[cls]?.[day] || [])[periodIdx] || '';
                                    return <EditableCell key={`${day}-${cls}-${periodIdx}`} content={cellContent} isEditMode={isEditMode} onCellChange={(value) => onCellChange(cls, day, periodIdx, value)} conflictKey={`${cls}-${day}-${periodIdx}`} conflicts={conflicts} teacherColorMap={teacherColorMap} isMounted={isMounted} />;
@@ -1188,6 +1210,8 @@ const CombinedRoutineTable = ({ routineData, conflicts, isEditMode, onCellChange
 };
 
 const EditableCell = ({ content, isEditMode, onCellChange, conflictKey, conflicts, teacherColorMap, isMounted }: { content: string, isEditMode: boolean, onCellChange: (value: string) => void, conflictKey: string, conflicts: any, teacherColorMap: Map<string, string>, isMounted: boolean }) => {
+    const isEn = typeof document !== 'undefined' && document.cookie.includes('googtrans=/bn/en');
+    
     // Check all types of conflicts
     const isTeacherClash = conflicts.teacherClashes.has(conflictKey);
     const isConsecutiveClash = conflicts.consecutiveClassClashes.has(conflictKey);
@@ -1209,6 +1233,19 @@ const EditableCell = ({ content, isEditMode, onCellChange, conflictKey, conflict
     const firstTeacher = teachersInCell.length > 0 ? teachersInCell[0] : null;
     const color = firstTeacher ? teacherColorMap.get(firstTeacher) : undefined;
 
+    const displayContent = useMemo(() => {
+        if (!content) return '';
+        if (isEn) {
+            return content
+                .replace(/শান্তি আরা/g, 'Shanti Ara')
+                .replace(/শান্তি রায়/g, 'Shanti Roy')
+                .replace(/শান্তি রায়/g, 'Shanti Roy')
+                .replace(/শান্তি/g, 'Shanti Ara')
+                .replace(/\bPeace\b/gi, 'Shanti Ara');
+        }
+        return content;
+    }, [content, isEn]);
+
     const cellInner = isEditMode ? (
         <Input
             value={content}
@@ -1221,7 +1258,7 @@ const EditableCell = ({ content, isEditMode, onCellChange, conflictKey, conflict
         />
     ) : (
         <div className="p-2 print:p-0.5 text-[11px] print:text-[8px] text-center leading-tight break-words font-medium">
-            {content || <>&nbsp;</>}
+            {displayContent || <>&nbsp;</>}
         </div>
     );
 

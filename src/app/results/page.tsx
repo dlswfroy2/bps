@@ -537,19 +537,45 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
     const bulkUploadRef = useRef<HTMLInputElement>(null);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
 
-    // Add unique refs for each table to support scroll syncing
+    // Dynamic ref tracking for scroll syncing
     const tableContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const topScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const scrollingRef = useRef<string | null>(null);
 
     const handleScrollSync = (key: string, source: 'top' | 'table') => {
         const top = topScrollRefs.current[key];
         const table = tableContainerRefs.current[key];
         if (!top || !table) return;
+
+        // Prevent feedback loop using a frame-based guard
+        if (scrollingRef.current && scrollingRef.current !== source + key) return;
+        
+        scrollingRef.current = source + key;
         if (source === 'top') {
             table.scrollLeft = top.scrollLeft;
         } else {
             top.scrollLeft = table.scrollLeft;
         }
+        
+        requestAnimationFrame(() => {
+            scrollingRef.current = null;
+        });
+    };
+
+    // Calculate a more precise table width based on column widths used in CSS
+    const calculateTableWidth = (subs: SubjectType[]) => {
+        let width = 60 + 200 + 350; // Sticky columns: Roll (60) + Name (200) + End Summary (5 * 70 = 350)
+        subs.forEach(s => {
+            const isEng = s.name.includes('ইংরেজি');
+            if (isEng) {
+                width += 144; // 3 columns (Obtained: 56, Grade: 40, Point: 48)
+            } else if (s.practical) {
+                width += 288; // 6 columns (Written: 48, MCQ: 48, Practical: 48, Obtained: 56, Grade: 40, Point: 48)
+            } else {
+                width += 240; // 5 columns (Written: 48, MCQ: 48, Obtained: 56, Grade: 40, Point: 48)
+            }
+        });
+        return width;
     };
 
     useEffect(() => { 
@@ -827,6 +853,8 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
                     return effectiveFullMarks > 0;
                 });
 
+                const totalTableWidth = calculateTableWidth(subs);
+
                 return (
                     <div key={gk} className="space-y-0">
                         <div className="flex justify-between items-center bg-primary/10 p-2 rounded-t-lg border-2 border-black">
@@ -834,14 +862,14 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
                             <Badge variant="secondary" className="font-black px-3 text-xs">মোট: {toBengaliNumber(results.length)} জন</Badge>
                         </div>
                         
-                        {/* Top Scroll Sync Bar */}
+                        {/* Top Scroll Sync Bar - Optimized with guard and matching width */}
                         <div 
                             ref={el => { topScrollRefs.current[gk] = el; }}
                             onScroll={() => handleScrollSync(gk, 'top')}
                             className="overflow-x-auto no-print mb-1 h-3 scrollbar-thin scrollbar-thumb-primary/20"
                             style={{ width: '100%' }}
                         >
-                            <div style={{ width: `${(subs.length * 150) + 400}px`, height: '1px' }} />
+                            <div style={{ width: `${totalTableWidth}px`, height: '1px' }} />
                         </div>
 
                         <div 
@@ -1786,7 +1814,7 @@ const SpecialExamTab = ({ allStudents, onPrintRequested }: { allStudents: Studen
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end p-6 border-2 border-black/5 bg-white shadow-sm rounded-2xl">
                         <div className="space-y-2"><Label className="font-bold text-xs text-primary">মাস</Label><Select value={selectedMonth} onValueChange={setSelectedMonth}><SelectTrigger className="bg-slate-50 border-2 font-bold"><SelectValue placeholder="মাস" /></SelectTrigger><SelectContent>{BENGALI_MONTHS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
-                        <div className="space-y-2"><Label className="font-bold text-xs text-primary">পরীক্ষা</Label><Select value={selectedExam} onValueChange={setSelectedExam}><SelectTrigger className="bg-slate-50 border-2 font-bold"><SelectValue placeholder="পরীক্ষা" /></SelectTrigger><SelectContent>{specialExams.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-2"><Label className="font-bold text-xs text-primary">পরীক্ষা</Label><Select value={selectedExam} onValueChange={setSelectedExam}><SelectTrigger className="bg-slate-50 border-2 font-bold"><SelectValue placeholder="পরীক্ষা" /></SelectTrigger><SelectContent>{specialExams.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}</SelectContent></Select></div>
                         <div className="space-y-2"><Label className="font-bold text-xs text-primary">শ্রেণি</Label><Select value={selectedClass} onValueChange={setSelectedClass}><SelectTrigger className="bg-slate-50 border-2 font-bold"><SelectValue placeholder="সিলেক্ট" /></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c} value={c}>{classNamesMap[c]} শ্রেণি</SelectItem>)}</SelectContent></Select></div>
                         <div className="space-y-2"><Label className="font-bold text-xs text-primary">বিষয়</Label><Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={!selectedClass}><SelectTrigger className="bg-slate-50 border-2 font-bold"><SelectValue placeholder="বিষয়" /></SelectTrigger><SelectContent>{getSubjects(selectedClass).filter(s => s.isExamSubject !== false).map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}</SelectContent></Select></div>
                         <Button onClick={handleLoadForInput} disabled={isLoading || !selectedMonth || !selectedExam || !selectedSubject} className="font-black h-11 shadow-md">লোড করুন</Button>

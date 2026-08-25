@@ -124,14 +124,14 @@ const BackgroundGallery = () => {
     if (isLoading) return <div className="absolute inset-0 bg-slate-900" />;
 
     return (
-        <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
+        <div className="absolute inset-0 w-full h-full overflow-hidden z-0 bg-slate-950">
             {activeImages.length > 0 ? (
                 activeImages.map((img, idx) => (
                     <div 
                         key={img.id}
                         className={cn(
-                            "absolute inset-0 transition-opacity duration-2000 ease-in-out",
-                            idx === currentIdx ? "opacity-100 scale-105" : "opacity-0 scale-100"
+                            "absolute inset-0 transition-all duration-2000 ease-in-out",
+                            idx === currentIdx ? "opacity-100 scale-110" : "opacity-0 scale-100"
                         )}
                         style={{ transitionProperty: 'opacity, transform', transitionDuration: '2s' }}
                     >
@@ -140,9 +140,9 @@ const BackgroundGallery = () => {
                             alt={img.title} 
                             fill 
                             priority={idx === 0}
-                            className="object-cover object-center"
+                            className="object-cover object-center blur-[12px]"
                         />
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
                     </div>
                 ))
             ) : (
@@ -742,7 +742,7 @@ export default function LoginPage() {
 
             {/* Hidden Printable Result Summary */}
             {searchResult && (
-                <div className="hidden print:block printable-area bg-white text-black p-8 font-kalpurush border-[10px] border-double border-primary/20 rounded-sm w-[210mm] h-[297mm] mx-auto overflow-hidden">
+                <div className="hidden print:block printable-area bg-white text-black p-6 font-kalpurush border-[10px] border-double border-primary/20 rounded-sm w-[210mm] h-[297mm] mx-auto overflow-hidden">
                     <header className="text-center border-b-4 border-primary pb-2 mb-6 flex flex-col items-center">
                         {schoolInfo.logoUrl && <img src={schoolInfo.logoUrl} alt="Logo" className="w-16 h-16 object-contain mb-1" />}
                         <h1 className="text-2xl font-black text-primary leading-tight uppercase">{schoolInfo.name}</h1>
@@ -787,7 +787,7 @@ export default function LoginPage() {
                         </table>
                     </div>
 
-                    <div className="mt-6 flex justify-between px-10 pt-8">
+                    <div className="mt-10 flex justify-between px-10 pt-8">
                         <div className="text-center w-40 border-t border-black pt-1 font-black text-[10px]">অফিস সহকারীর স্বাক্ষর</div>
                         <div className="text-center w-40 border-t border-black pt-1 font-black text-[10px]">প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
                     </div>

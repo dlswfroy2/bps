@@ -90,12 +90,23 @@ export function processStudentResults(
                 const hmNormalized = normalize('উচ্চতর গণিত');
                 const agriNormalized = normalize('কৃষি শিক্ষা');
                 
-                if (optionalSubjectNameNormalized === hmNormalized && currentSubNameNormalized === agriNormalized) return false;
-                if (optionalSubjectNameNormalized === agriNormalized && currentSubNameNormalized === hmNormalized) return false;
+                // If student takes Higher Math, exclude Agriculture
+                if (optionalSubjectNameNormalized === hmNormalized && currentSubNameNormalized === agriNormalized) {
+                    return false;
+                }
+                // If student takes Agriculture, exclude Higher Math
+                if (optionalSubjectNameNormalized === agriNormalized && currentSubNameNormalized === hmNormalized) {
+                    return false;
+                }
                 
-                // If student takes something else as optional, but these two are group-potential, 
-                // we should only include the one designated as optional or the default.
-                // However, usually it's one of these two.
+                // If current subject is one of these two but isn't the one specified as optional, 
+                // and student has NOT selected it as optional, we need to decide which one to keep as compulsory.
+                // In Science, Physics, Chem, Bio, BGS are compulsory. HM and Agri are the choices.
+                // If none is marked optional, we keep both and it might reach 13.
+                // To prevent 13, if the current subject is one of these and NOT the optional one, we filter it out.
+                if ((currentSubNameNormalized === hmNormalized || currentSubNameNormalized === agriNormalized) && currentSubNameNormalized !== optionalSubjectNameNormalized) {
+                    return false;
+                }
             }
             
             return true;

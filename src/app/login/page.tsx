@@ -140,9 +140,9 @@ const BackgroundGallery = () => {
                             alt={img.title} 
                             fill 
                             priority={idx === 0}
-                            className="object-cover object-center blur-[12px]"
+                            className="object-cover object-center blur-[2px]"
                         />
-                        <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+                        <div className="absolute inset-0 bg-black/20" />
                     </div>
                 ))
             ) : (
@@ -209,6 +209,84 @@ const NoticeTicker = () => {
         );
     }
     return null;
+};
+
+const GalleryCard = () => {
+    const db = useFirestore();
+    const { user } = useAuth();
+    const [config, setConfig] = useState<GalleryConfig>(defaultGalleryConfig);
+    const [currentIdx, setCurrentIdx] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db || !user) return;
+        const unsub = onSnapshot(doc(db, 'school', 'gallery'), (snap) => {
+            if (snap.exists()) {
+                setConfig(snap.data() as GalleryConfig);
+            }
+            setIsLoading(false);
+        }, async (error: FirestoreError) => {
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'school/gallery',
+                    operation: 'get',
+                }));
+            }
+        });
+        return () => unsub();
+    }, [db, user]);
+
+    const activeImages = useMemo(() => config.images.filter(img => img.isActive), [config.images]);
+
+    useEffect(() => {
+        if (activeImages.length <= 1) return;
+        const interval = setInterval(() => {
+            setCurrentIdx(prev => (prev + 1) % activeImages.length);
+        }, config.duration * 1000);
+        return () => clearInterval(interval);
+    }, [activeImages, config.duration]);
+
+    if (isLoading) return <Skeleton className="h-full w-full rounded-lg" />;
+
+    return (
+        <Card className="relative overflow-hidden bg-white border-2 border-black shadow-sm group hover:shadow-lg transition-all duration-500">
+            <CardHeader className="p-3 bg-primary/5 border-b border-black/10 relative z-20">
+                <CardTitle className="text-xs font-black text-primary flex items-center gap-1.5 uppercase">
+                    <ImageIcon className="h-3.5 w-3.5" /> বিদ্যালয় গ্যালারি
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 relative h-28 sm:h-32 overflow-hidden">
+                {activeImages.length > 0 ? (
+                    <div className="relative w-full h-full">
+                        {activeImages.map((img, idx) => (
+                            <div 
+                                key={img.id}
+                                className={cn(
+                                    "absolute inset-0 transition-opacity duration-1000",
+                                    idx === currentIdx ? "opacity-100 z-10" : "opacity-0 z-0"
+                                )}
+                            >
+                                <Image 
+                                    src={img.url} 
+                                    alt={img.title} 
+                                    fill 
+                                    className="object-cover"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-[2px] p-1 text-center">
+                                    <p className="text-[10px] text-white font-black truncate">{img.title}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-muted-foreground italic">
+                        <ImageIcon className="h-8 w-8 mb-1 opacity-20" />
+                        <p className="text-[10px]">ছবি নেই</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
 };
 
 export default function LoginPage() {
@@ -525,7 +603,6 @@ export default function LoginPage() {
                                                     <form onSubmit={(e) => { e.preventDefault(); handleAuthAction('signIn', 'admin'); }} className="space-y-6">
                                                         <AuthFormFields email={email} password={password} setEmail={setEmail} setPassword={setPassword} />
                                                         <Button type="submit" disabled={isLoadingAuth} className="w-full h-12 text-lg font-black shadow-xl">
-                                                            {isLoadingAuth ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : null}
                                                             লগইন করুন
                                                         </Button>
                                                     </form>

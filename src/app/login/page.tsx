@@ -211,169 +211,6 @@ const NoticeTicker = () => {
     return null;
 };
 
-const GalleryCard = () => {
-    const db = useFirestore();
-    const { user } = useAuth();
-    const [config, setConfig] = useState<GalleryConfig>(defaultGalleryConfig);
-    const [currentIdx, setCurrentIdx] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        if (!db || !user) return;
-        const unsub = onSnapshot(doc(db, 'school', 'gallery'), (snap) => {
-            if (snap.exists()) {
-                setConfig(snap.data() as GalleryConfig);
-            }
-            setIsLoading(false);
-        }, async (error: FirestoreError) => {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: 'school/gallery',
-                    operation: 'get',
-                }));
-            }
-        });
-        return () => unsub();
-    }, [db, user]);
-
-    const activeImages = useMemo(() => config.images.filter(img => img.isActive), [config.images]);
-
-    useEffect(() => {
-        if (activeImages.length <= 1) return;
-        const interval = setInterval(() => {
-            setCurrentIdx(prev => (prev + 1) % activeImages.length);
-        }, config.duration * 1000);
-        return () => clearInterval(interval);
-    }, [activeImages, config.duration]);
-
-    if (isLoading) return <Skeleton className="h-full w-full rounded-lg" />;
-
-    return (
-        <Card className="relative overflow-hidden bg-white border-2 border-black shadow-sm group hover:shadow-lg transition-all duration-500">
-            <CardHeader className="p-3 bg-primary/5 border-b border-black/10 relative z-20">
-                <CardTitle className="text-xs font-black text-primary flex items-center gap-1.5 uppercase">
-                    <ImageIcon className="h-3.5 w-3.5" /> বিদ্যালয় গ্যালারি
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 relative h-28 sm:h-32 overflow-hidden">
-                {activeImages.length > 0 ? (
-                    <div className="relative w-full h-full">
-                        {activeImages.map((img, idx) => (
-                            <div 
-                                key={img.id}
-                                className={cn(
-                                    "absolute inset-0 transition-opacity duration-1000",
-                                    idx === currentIdx ? "opacity-100 z-10" : "opacity-0 z-0"
-                                )}
-                            >
-                                <Image 
-                                    src={img.url} 
-                                    alt={img.title} 
-                                    fill 
-                                    className="object-cover"
-                                />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-[2px] p-1 text-center">
-                                    <p className="text-[10px] text-white font-black truncate">{img.title}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-muted-foreground italic">
-                        <ImageIcon className="h-8 w-8 mb-1 opacity-20" />
-                        <p className="text-[10px]">ছবি নেই</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-};
-
-const TeachersOnLeaveCard = () => {
-    const db = useFirestore();
-    const { user } = useAuth();
-    const [onLeave, setOnLeave] = useState<{name: string, designation: string, type?: string}[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        if (!db || !user) return;
-        
-        const fetchLeaveInfo = async () => {
-            setIsLoading(true);
-            try {
-                const todayStr = format(new Date(), 'yyyy-MM-dd');
-                const qAtt = query(collection(db, 'staffAttendance'), where('date', '==', todayStr));
-                const attSnap = await getDocs(qAtt);
-                const qStaff = collection(db, 'staff');
-                const staffSnap = await getDocs(qStaff);
-                const allStaff = staffSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-
-                if (!attSnap.empty) {
-                    const attRecord = attSnap.docs[0].data();
-                    const leaveEntries = attRecord.attendance.filter((a: any) => a.status === 'leave');
-                    const leaveDetails = leaveEntries.map((l: any) => {
-                        const staff = allStaff.find(s => s.id === l.staffId);
-                        return { 
-                            name: staff?.nameBn || 'অজানা', 
-                            designation: staff?.designation || '',
-                            type: l.leaveType 
-                        };
-                    });
-                    setOnLeave(leaveDetails);
-                } else {
-                    setOnLeave([]);
-                }
-            } catch (e) {
-                console.error("Error fetching leave info:", e);
-            }
-            setIsLoading(false);
-        };
-        
-        fetchLeaveInfo();
-    }, [db, user]);
-
-    return (
-        <Card className="lg:col-span-1 shadow-md border-2 border-black bg-rose-50/30">
-            <CardHeader className="bg-rose-100/50 rounded-t-lg pb-3">
-                <CardTitle className="text-lg flex items-center gap-2 text-rose-800">
-                    <UserRound className="h-5 w-5" /> ছুটিতে থাকা শিক্ষক ও কর্মচারী
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-                {isLoading ? (
-                    <Skeleton className="h-24 w-full rounded-md" />
-                ) : onLeave.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-6 text-muted-foreground italic text-center">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2 opacity-20" />
-                        <p className="text-xs">আজ সব শিক্ষক ও কর্মচারী উপস্থিত আছেন।</p>
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        {onLeave.map((person, idx) => (
-                            <div key={idx} className="flex flex-col gap-0.5 p-2.5 bg-white rounded-lg border border-rose-100 shadow-sm">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                                        <span className="font-bold text-rose-900 text-sm">{person.name}</span>
-                                    </div>
-                                    {person.type && (
-                                        <Badge variant="outline" className="text-[9px] h-4 font-black bg-rose-50 text-rose-700 border-rose-200">
-                                            {person.type}
-                                        </Badge>
-                                    )}
-                                </div>
-                                <p className="text-[10px] font-bold text-muted-foreground pl-3.5 italic">
-                                    {person.designation}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-};
-
 const LiveRoutineCard = () => {
     const db = useFirestore();
     const { user } = useAuth();
@@ -958,7 +795,7 @@ export default function LoginPage() {
                             <Button 
                                 variant="outline" 
                                 size="lg" 
-                                className="h-9 px-5 rounded-xl border-2 border-white/30 text-white font-black text-[10px] bg-white/10 backdrop-blur-md shadow-xl hover:bg-white hover:text-primary transition-all duration-500 group"
+                                className="h-9 px-5 rounded-xl border-2 border-red-600 text-white font-black text-[10px] bg-white/10 backdrop-blur-md shadow-xl hover:bg-white hover:text-primary transition-all duration-500 group"
                                 onClick={() => setIsSearchOpen(true)}
                             >
                                 <BookOpen className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
@@ -968,7 +805,7 @@ export default function LoginPage() {
                                 <Button 
                                     variant="outline" 
                                     size="lg" 
-                                    className="h-9 px-5 rounded-xl border-2 border-emerald-400/50 text-white font-black text-[10px] bg-emerald-600/20 backdrop-blur-md shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
+                                    className="h-9 px-5 rounded-xl border-2 border-red-600 text-white font-black text-[10px] bg-emerald-600/20 backdrop-blur-md shadow-xl hover:bg-emerald-600 hover:text-white transition-all duration-500 group"
                                 >
                                     <UserPlus className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
                                     {isEn ? 'Online Admission' : 'অনলাইন ভর্তি'}
@@ -980,7 +817,7 @@ export default function LoginPage() {
                                     <Button 
                                         variant="outline" 
                                         size="lg" 
-                                        className="h-9 px-5 rounded-xl border-2 border-blue-400/50 text-white font-black text-[10px] bg-blue-600/20 backdrop-blur-md shadow-xl hover:bg-blue-600 hover:text-white transition-all duration-500 group"
+                                        className="h-9 px-5 rounded-xl border-2 border-red-600 text-white font-black text-[10px] bg-blue-600/20 backdrop-blur-md shadow-xl hover:bg-blue-600 hover:text-white transition-all duration-500 group"
                                     >
                                         <LogIn className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform" />
                                         {isEn ? 'Login' : 'লগইন করুন'}
@@ -1057,8 +894,6 @@ export default function LoginPage() {
                     <section className="hidden lg:flex flex-1 p-6 sm:p-12 items-center justify-center">
                         <div className="grid grid-cols-1 gap-6 w-full max-w-md">
                             <LiveRoutineCard />
-                            <TeachersOnLeaveCard />
-                            <GalleryCard />
                         </div>
                     </section>
                 </div>

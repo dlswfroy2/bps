@@ -140,9 +140,9 @@ const BackgroundGallery = () => {
                             alt={img.title} 
                             fill 
                             priority={idx === 0}
-                            className="object-cover object-center"
+                            className="object-cover object-center brightness-[1.20] contrast-[1.10]"
                         />
-                        <div className="absolute inset-0 bg-black/10" />
+                        <div className="absolute inset-0 bg-black/5" />
                     </div>
                 ))
             ) : (
@@ -289,6 +289,420 @@ const GalleryCard = () => {
     );
 };
 
+const TeachersOnLeaveCard = () => {
+    const db = useFirestore();
+    const { user } = useAuth();
+    const [onLeave, setOnLeave] = useState<{name: string, designation: string, type?: string}[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db || !user) return;
+        
+        const fetchLeaveInfo = async () => {
+            setIsLoading(true);
+            try {
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                const [attRecord, allStaff] = await Promise.all([
+                    getStaffAttendanceByDate(db, todayStr),
+                    getStaff(db)
+                ]);
+
+                if (attRecord) {
+                    const leaveEntries = attRecord.attendance.filter(a => a.status === 'leave');
+                    const leaveDetails = leaveEntries.map(l => {
+                        const staff = allStaff.find(s => s.id === l.staffId);
+                        return { 
+                            name: staff?.nameBn || 'অজানা', 
+                            designation: staff?.designation || '',
+                            type: l.leaveType 
+                        };
+                    });
+                    setOnLeave(leaveDetails);
+                } else {
+                    setOnLeave([]);
+                }
+            } catch (e) {
+                console.error("Error fetching leave info:", e);
+            }
+            setIsLoading(false);
+        };
+        
+        fetchLeaveInfo();
+    }, [db, user]);
+
+    return (
+        <Card className="lg:col-span-1 shadow-md border-2 border-black bg-rose-50/30">
+            <CardHeader className="bg-rose-100/50 rounded-t-lg pb-3">
+                <CardTitle className="text-lg flex items-center gap-2 text-rose-800">
+                    <UserMinus className="h-5 w-5" /> ছুটিতে থাকা শিক্ষক ও কর্মচারী
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+                {isLoading ? (
+                    <Skeleton className="h-24 w-full rounded-md" />
+                ) : onLeave.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-muted-foreground italic text-center">
+                        <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2 opacity-20" />
+                        <p className="text-xs">আজ সব শিক্ষক ও কর্মচারী উপস্থিত আছেন।</p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {onLeave.map((person, idx) => (
+                            <div key={idx} className="flex flex-col gap-0.5 p-2.5 bg-white rounded-lg border border-rose-100 shadow-sm">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                                        <span className="font-bold text-rose-900 text-sm">{person.name}</span>
+                                    </div>
+                                    {person.type && (
+                                        <Badge variant="outline" className="text-[9px] h-4 font-black bg-rose-50 text-rose-700 border-rose-200">
+                                            {person.type}
+                                        </Badge>
+                                    )}
+                                </div>
+                                <p className="text-[10px] font-bold text-muted-foreground pl-3.5 italic">
+                                    {person.designation}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+const LiveRoutineCard = () => {
+    const db = useFirestore();
+    const { user } = useAuth();
+    const { selectedYear } = useAcademicYear();
+    const [fullRoutine, setFullRoutine] = useState<any[]>([]);
+    const [proxies, setProxies] = useState<any[]>([]);
+    const [currentTime, setCurrentTime] = useState<Date | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeHoliday, setActiveHoliday] = useState<any | undefined>(undefined);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    const periodTimes = [
+      { name: "১ম", start: { h: 10, m: 30 }, end: { h: 11, m: 20 } },
+      { name: "২য়", start: { h: 11, m: 20 }, end: { h: 12, m: 10 } },
+      { name: "৩য়", start: { h: 12, m: 10 }, end: { h: 13, m: 0 } },
+      { name: "বিরতি", start: { h: 13, m: 0 }, end: { h: 14, m: 0 } },
+      { name: "৪র্থ", start: { h: 14, m: 0 }, end: { h: 14, m: 40 } },
+      { name: "৫ম", start: { h: 14, m: 40 }, end: { h: 15, m: 20 } },
+      { name: "৬ষ্ঠ", start: { h: 15, m: 20 }, end: { h: 16, m: 0 } },
+    ];
+
+    const dayMap = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"];
+    const parseTeacherName = (cell: string): string => {
+        if (!cell || !cell.includes(' - ')) return 'N/A';
+        const parts = cell.split(' - ');
+        return parts.pop()?.trim() || 'N/A';
+    };
+
+    useEffect(() => {
+        if (!db || !user || !isClient) return;
+        setIsLoading(true);
+        const fetchData = async () => {
+            try {
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                const [routineData, holidayInfo, proxyData] = await Promise.all([
+                    getDocs(query(collection(db, 'classRoutines'), where('academicYear', '==', selectedYear))),
+                    getDocs(query(collection(db, 'holidays'), where('date', '==', todayStr), limit(1))),
+                    getDocs(query(collection(db, 'proxyClasses'), where('date', '==', todayStr), where('academicYear', '==', selectedYear)))
+                ]);
+                
+                setFullRoutine(routineData.docs.map(d => d.data()));
+                setActiveHoliday(holidayInfo.empty ? undefined : holidayInfo.docs[0].data());
+                setProxies(proxyData.docs.map(d => d.data()));
+            } catch (e) {
+                console.error(e);
+            }
+            setIsLoading(false);
+        };
+        fetchData();
+        setCurrentTime(new Date());
+    }, [db, selectedYear, user, isClient]);
+
+    useEffect(() => {
+        if (!isClient) return;
+        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, [isClient]);
+
+    const getCurrentPeriodInfo = () => {
+        if (!isClient || !currentTime) return { status: 'লোড হচ্ছে...', runningClasses: [], isSpecialStatus: false, nextClasses: [], nextStatus: '' };
+        
+        const now = currentTime;
+        const currentDayName = dayMap[now.getDay()];
+        let status = 'ক্লাস চলছে';
+        let runningClasses: any[] = [];
+        let isSpecialStatus = false;
+        let nextClasses: any[] = [];
+        let nextStatus = '';
+
+        if (activeHoliday) {
+            isSpecialStatus = true;
+            return { status: `আজ ${activeHoliday.description}।`, runningClasses: [], isSpecialStatus, nextClasses: [], nextStatus: '' };
+        }
+        
+        if (currentDayName === 'শুক্রবার' || currentDayName === 'শনিবার') {
+            isSpecialStatus = true;
+            return { status: 'আজ সাপ্তাহিক ছুটি।', runningClasses: [], isSpecialStatus, nextClasses: [], nextStatus: '' };
+        }
+
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        let periodIndex = -1;
+        for(let i=0; i<periodTimes.length; i++) {
+            const period = periodTimes[i];
+            const startMinutes = period.start.h * 60 + period.start.m;
+            const endMinutes = period.end.h * 60 + period.end.m;
+
+            if(currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+                if (period.name === 'বিরতি') {
+                    status = 'এখন টিফিনের বিরতি চলছে।';
+                } else {
+                    if (i < 3) periodIndex = i; 
+                    if (i > 3) periodIndex = i - 1;
+                }
+                break;
+            }
+        }
+        
+        if (periodIndex !== -1) {
+            runningClasses = fullRoutine
+                .filter(r => r.day === currentDayName)
+                .map(r => {
+                    const periodContent = r.periods[periodIndex];
+                    if (periodContent) {
+                        const adjustedPeriodIndex = periodIndex + (periodIndex >= 3 ? 1 : 0);
+                        const periodInfo = periodTimes[adjustedPeriodIndex];
+                        const proxy = proxies.find(p => p.className === r.className && p.periodIndex === periodIndex);
+                        return {
+                            className: r.className,
+                            displayClassName: classNamesMap[r.className] || r.className,
+                            teacher: proxy ? proxy.proxyTeacher : parseTeacherName(periodContent),
+                            isProxy: !!proxy,
+                            period: periodInfo.name,
+                            time: `${periodInfo.start.h.toString().padStart(2, '0')}:${periodInfo.start.m.toString().padStart(2, '0')} - ${periodInfo.end.h.toString().padStart(2, '0')}:${periodInfo.end.m.toString().padStart(2, '0')}`
+                        };
+                    }
+                    return null;
+                })
+                .filter((c): c is NonNullable<typeof c> => c !== null)
+                .sort((a, b) => parseInt(a.className) - parseInt(b.className));
+            
+            if (runningClasses.length === 0) status = 'এখন কোনো ক্লাস চলছে না।';
+        } else if (status === 'ক্লাস চলছে') {
+             status = 'এখন কোনো ক্লাস চলছে না।';
+        }
+
+        let nextRawPeriodIndex = -1;
+        for(let i=0; i<periodTimes.length; i++) {
+            const period = periodTimes[i];
+            const startMinutes = period.start.h * 60 + period.start.m;
+            if (startMinutes > currentMinutes) {
+                nextRawPeriodIndex = i;
+                break;
+            }
+        }
+
+        if (nextRawPeriodIndex !== -1) {
+            const nextPeriodInfo = periodTimes[nextRawPeriodIndex];
+            if (nextPeriodInfo.name === 'বিরতি') {
+                nextStatus = `পরবর্তী: টিফিনের বিরতি (${nextPeriodInfo.start.h > 12 ? nextPeriodInfo.start.h - 12 : nextPeriodInfo.start.h}:${nextPeriodInfo.start.m.toString().padStart(2, '0')})`;
+            } else {
+                let nextPeriodIndexCalc = -1;
+                if (nextRawPeriodIndex < 3) nextPeriodIndexCalc = nextRawPeriodIndex;
+                if (nextRawPeriodIndex > 3) nextPeriodIndexCalc = nextRawPeriodIndex - 1;
+
+                if (nextPeriodIndexCalc !== -1) {
+                    nextClasses = fullRoutine
+                        .filter(r => r.day === currentDayName)
+                        .map(r => {
+                            const periodContent = r.periods[nextPeriodIndexCalc];
+                            if (periodContent) {
+                                const proxy = proxies.find(p => p.className === r.className && p.periodIndex === nextPeriodIndexCalc);
+                                return {
+                                    className: r.className,
+                                    displayClassName: classNamesMap[r.className] || r.className,
+                                    teacher: proxy ? proxy.proxyTeacher : parseTeacherName(periodContent),
+                                    isProxy: !!proxy,
+                                    period: nextPeriodInfo.name,
+                                    time: `${nextPeriodInfo.start.h > 12 ? nextPeriodInfo.start.h - 12 : nextPeriodInfo.start.h}:${nextPeriodInfo.start.m.toString().padStart(2, '0')} - ${nextPeriodInfo.end.h > 12 ? nextPeriodInfo.end.h - 12 : nextPeriodInfo.end.h}:${nextPeriodInfo.end.m.toString().padStart(2, '0')}`
+                                };
+                            }
+                            return null;
+                        })
+                        .filter((c): c is NonNullable<typeof c> => c !== null)
+                        .sort((a, b) => parseInt(a.className) - parseInt(b.className));
+                }
+                
+                nextStatus = `পরবর্তী ক্লাস শুরু হবে ${nextPeriodInfo.start.h > 12 ? nextPeriodInfo.start.h - 12 : nextPeriodInfo.start.h}:${nextPeriodInfo.start.m.toString().padStart(2, '0')} এ`;
+            }
+        } else {
+             nextStatus = 'আজ আর কোনো ক্লাস বাকি নেই।';
+        }
+
+        return { status, runningClasses, isSpecialStatus, nextClasses, nextStatus };
+    };
+
+    const periodInfo = getCurrentPeriodInfo();
+
+    return (
+        <Card className="lg:col-span-2 shadow-md border-2 border-black bg-white/90 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="flex flex-col gap-1">
+                    <CardTitle className="text-sm font-black flex items-center gap-2 text-primary">
+                        <Clock className="h-4 w-4" /> লাইভ ক্লাস রুটিন
+                    </CardTitle>
+                    <div className="text-[10px] font-black text-muted-foreground pl-6 uppercase">
+                        {isClient && currentTime ? format(currentTime, 'EEEE, d MMMM yyyy', { locale: bn }) : ''}
+                    </div>
+                </div>
+                 <Badge variant="outline" className="flex items-center gap-2 bg-white shadow-sm border-2">
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    {isClient && currentTime ? <span className="font-black">{currentTime.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: 'numeric' })}</span> : <Skeleton className="h-4 w-12" />}
+                </Badge>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="space-y-2 pt-4">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-full" />
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        <div>
+                            {periodInfo.runningClasses && periodInfo.runningClasses.length > 0 ? (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 mb-2 text-emerald-700 font-black text-xs uppercase tracking-wider">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        </span>
+                                        এখন ক্লাস চলছে
+                                    </div>
+                                    <Table>
+                                        <TableHeader className="bg-muted/50">
+                                            <TableRow>
+                                                <TableHead className="font-black text-[10px]">সময়</TableHead>
+                                                <TableHead className="font-black text-[10px]">শিক্ষক</TableHead>
+                                                <TableHead className="font-black text-[10px]">শ্রেণি</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {periodInfo.runningClasses.map((rc, index) => (
+                                                <TableRow key={index} className="h-10">
+                                                    <TableCell className="text-[10px] font-bold text-slate-600">{toBengaliNumber(rc.time)}</TableCell>
+                                                    <TableCell className="font-black text-primary text-xs">
+                                                        {rc.teacher} 
+                                                        {rc.isProxy && <span className="ml-1 text-[8px] text-red-600 font-black animate-pulse">(বদলি)</span>}
+                                                    </TableCell>
+                                                    <TableCell className="font-black text-xs">{rc.displayClassName}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center h-20 text-center bg-muted/20 rounded-xl border-2 border-dashed">
+                                    <p className={cn(
+                                        "font-black transition-all duration-500",
+                                        periodInfo.isSpecialStatus ? "text-red-600 text-lg" : "text-sm text-muted-foreground"
+                                    )}>
+                                        {periodInfo.status}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {!periodInfo.isSpecialStatus && (
+                            <div className="pt-4 border-t-2 border-dashed">
+                                {periodInfo.nextClasses && periodInfo.nextClasses.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <div className="text-indigo-700 font-black text-xs uppercase mb-2">
+                                            {periodInfo.nextStatus}
+                                        </div>
+                                        <Table>
+                                            <TableHeader className="bg-indigo-50/50">
+                                                <TableRow>
+                                                    <TableHead className="font-black text-[10px]">সময়</TableHead>
+                                                    <TableHead className="font-black text-[10px]">শিক্ষক</TableHead>
+                                                    <TableHead className="font-black text-[10px]">শ্রেণি</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {periodInfo.nextClasses.map((nc, index) => (
+                                                    <TableRow key={index} className="h-10">
+                                                        <TableCell className="text-[10px] font-bold text-slate-500">{toBengaliNumber(nc.time)}</TableCell>
+                                                        <TableCell className="font-black text-indigo-900 text-xs">
+                                                            {nc.teacher}
+                                                            {nc.isProxy && <span className="ml-1 text-[8px] text-red-600 font-black">(বদলি)</span>}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground font-bold text-xs">{nc.displayClassName}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-[10px] font-black text-muted-foreground py-2">
+                                        {periodInfo.nextStatus}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+const PublicStats = ({ stats, globalYear, isEn }: any) => {
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+            <div className="bg-white/90 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <Users className="h-5 w-5" />
+                </div>
+                <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? (stats.students || 0) : toBengaliNumber(stats.students || 0)}</p>
+                <p className="text-[10px] font-black text-indigo-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'STUDENT' : 'শিক্ষার্থী'}</p>
+            </div>
+            <div className="bg-white/90 backdrop-blur-md border-2 border-emerald-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <GraduationCap className="h-5 w-5" />
+                </div>
+                <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? (stats.teachers || 0) : toBengaliNumber(stats.teachers || 0)}</p>
+                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'TEACHER' : 'শিক্ষক'}</p>
+            </div>
+            <div className="bg-white/90 backdrop-blur-md border-2 border-blue-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <CalendarCheck className="h-5 w-5" />
+                </div>
+                <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? stats.attendanceRate.toFixed(1) : toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
+                <p className="text-[10px] font-black text-blue-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'ATTENDANCE' : 'উপস্থিতি'}</p>
+            </div>
+            <div className="bg-white/90 backdrop-blur-md border-2 border-rose-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
+                <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                    <Trophy className="h-5 w-5" />
+                </div>
+                <p className="text-2xl font-black text-rose-950 mb-1 notranslate" translate="no">{isEn ? stats.passRate.toFixed(1) : toBengaliNumber(stats.passRate.toFixed(1))}%</p>
+                <p className="text-[10px] font-black text-rose-600 uppercase mt-1 notranslate" translate="no">{isEn ? `SSC EXAM- ${stats.sscYear || globalYear}` : `এস এস সি পরীক্ষা-${toBengaliNumber(stats.sscYear || globalYear)}`}</p>
+            </div>
+        </div>
+    );
+};
+
 export default function LoginPage() {
     const { toast } = useToast();
     const router = useRouter();
@@ -358,8 +772,8 @@ export default function LoginPage() {
                     sscRecordsPromise.catch(() => ({ size: 0, docs: [] }))
                 ]);
 
-                const totalStudentsCount = sSnap.size;
-                const activeTeachersCount = tSnap.size;
+                const totalStudentsCount = (sSnap as any).size;
+                const activeTeachersCount = (tSnap as any).size;
 
                 let presentCount = 0;
                 (attSnap as any).docs.forEach((doc: any) => {
@@ -369,7 +783,6 @@ export default function LoginPage() {
                     }
                 });
 
-                // Find SSC records: check globalYear first, then most recent year with records
                 let sscYear = globalYear;
                 let sscDocs = (allSscSnap as any).docs.filter((d: any) => d.data().academicYear === globalYear);
                 
@@ -472,7 +885,6 @@ export default function LoginPage() {
             }
             
             const foundStudent = studentFromDoc(studentSnap.docs[0]);
-            // Standardize both IDs for accurate comparison
             const dbStudentId = bnToEn(foundStudent.generatedId || '').trim().toUpperCase().replace(/\s/g, '');
             
             if (dbStudentId !== cleanStudentId && foundStudent.generatedId !== cleanStudentId) {
@@ -504,7 +916,6 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex flex-col font-kalpurush bg-slate-900 text-slate-900 overflow-x-hidden">
             
-            {/* Header / Nav */}
             <header className="sticky top-0 z-[100] w-full h-16 md:h-24 bg-primary flex items-center justify-between px-4 sm:px-12 shadow-md">
                 <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
                     <div className="relative h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-full border-2 border-white/20 p-0.5 bg-white shadow-md">
@@ -528,12 +939,9 @@ export default function LoginPage() {
             <NoticeTicker />
 
             <main className="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
-                {/* Full Background Gallery */}
                 <BackgroundGallery />
 
-                {/* Content Overlay */}
                 <div className="relative z-10 flex-1 flex flex-col lg:flex-row">
-                    {/* Left Side: Welcome & Stats */}
                     <section className="flex-1 p-4 sm:p-8 lg:p-12 flex flex-col justify-start pt-1 space-y-4">
                         <div className="space-y-1">
                             <h2 className="text-sm sm:text-base font-black leading-tight text-white drop-shadow-md tracking-tight">
@@ -640,40 +1048,16 @@ export default function LoginPage() {
                         </div>
 
                         <div className="w-full pt-1">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl">
-                                <div className="bg-white/90 backdrop-blur-md border-2 border-indigo-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
-                                    <div className="p-2 bg-indigo-50 rounded-xl w-fit mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                                        <Users className="h-5 w-5" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? (stats.students || 0) : toBengaliNumber(stats.students || 0)}</p>
-                                    <p className="text-[10px] font-black text-indigo-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'STUDENT' : 'শিক্ষার্থী'}</p>
-                                </div>
-                                <div className="bg-white/90 backdrop-blur-md border-2 border-emerald-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
-                                    <div className="p-2 bg-emerald-50 rounded-xl w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                                        <GraduationCap className="h-5 w-5" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? (stats.teachers || 0) : toBengaliNumber(stats.teachers || 0)}</p>
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'TEACHER' : 'শিক্ষক'}</p>
-                                </div>
-                                <div className="bg-white/90 backdrop-blur-md border-2 border-blue-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
-                                    <div className="p-2 bg-blue-50 rounded-xl w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                        <CalendarCheck className="h-5 w-5" />
-                                    </div>
-                                    <p className="text-2xl font-black text-slate-900 notranslate" translate="no">{isEn ? stats.attendanceRate.toFixed(1) : toBengaliNumber(stats.attendanceRate.toFixed(1))}%</p>
-                                    <p className="text-[10px] font-black text-blue-600 uppercase mt-1 notranslate" translate="no">{isEn ? 'ATTENDANCE' : 'উপস্থিতি'}</p>
-                                </div>
-                                <div className="bg-white/90 backdrop-blur-md border-2 border-rose-200 p-4 rounded-3xl shadow-xl hover:shadow-2xl transition-all group h-full">
-                                    <div className="p-2 bg-rose-50 rounded-xl w-fit mb-3 group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                                        <Trophy className="h-5 w-5" />
-                                    </div>
-                                    <p className="text-2xl font-black text-rose-950 mb-1 notranslate" translate="no">{isEn ? stats.passRate.toFixed(1) : toBengaliNumber(stats.passRate.toFixed(1))}%</p>
-                                    <p className="text-[10px] font-black text-rose-600 uppercase mt-1 notranslate" translate="no">{isEn ? `SSC EXAM- ${stats.sscYear || globalYear}` : `এস এস সি পরীক্ষা-${toBengaliNumber(stats.sscYear || globalYear)}`}</p>
-                                </div>
-                            </div>
+                           <PublicStats stats={stats} globalYear={globalYear} isEn={isEn} />
                         </div>
                     </section>
 
                     <section className="hidden lg:flex flex-1 p-6 sm:p-12 items-center justify-center">
+                        <div className="grid grid-cols-1 gap-6 w-full max-w-md">
+                            <LiveRoutineCard />
+                            <TeachersOnLeaveCard />
+                            <GalleryCard />
+                        </div>
                     </section>
                 </div>
             </main>
@@ -689,7 +1073,6 @@ export default function LoginPage() {
                 </div>
             </footer>
 
-            {/* Result Search Dialog */}
             <Dialog open={isSearchOpen} onOpenChange={(o) => { setIsSearchOpen(o); if(!o) { setSearchResult(null); setSearchRoll(''); setSearchStudentId(''); }}}>
                 <DialogContent className="sm:max-w-xl p-0 font-kalpurush overflow-hidden border-none shadow-2xl rounded-2xl z-[150]">
                     {!searchResult ? (
@@ -818,7 +1201,6 @@ export default function LoginPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Hidden Printable Result Summary */}
             {searchResult && (
                 <div className="hidden print:block printable-area bg-white text-black p-6 font-kalpurush border-[10px] border-double border-primary/20 rounded-sm w-[210mm] h-[297mm] mx-auto overflow-hidden">
                     <header className="text-center border-b-4 border-primary pb-2 mb-6 flex flex-col items-center">

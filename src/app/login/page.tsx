@@ -20,7 +20,7 @@ import {
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     UserPlus, Bell, ChevronRight,
     TrendingUp, ShieldCheck, MapPin, Phone,
-    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles, LogIn, Printer
+    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles, LogIn, Printer, Clock
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
@@ -302,14 +302,16 @@ const TeachersOnLeaveCard = () => {
             setIsLoading(true);
             try {
                 const todayStr = format(new Date(), 'yyyy-MM-dd');
-                const [attRecord, allStaff] = await Promise.all([
-                    getStaffAttendanceByDate(db, todayStr),
-                    getStaff(db)
-                ]);
+                const qAtt = query(collection(db, 'staffAttendance'), where('date', '==', todayStr));
+                const attSnap = await getDocs(qAtt);
+                const qStaff = collection(db, 'staff');
+                const staffSnap = await getDocs(qStaff);
+                const allStaff = staffSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
-                if (attRecord) {
-                    const leaveEntries = attRecord.attendance.filter(a => a.status === 'leave');
-                    const leaveDetails = leaveEntries.map(l => {
+                if (!attSnap.empty) {
+                    const attRecord = attSnap.docs[0].data();
+                    const leaveEntries = attRecord.attendance.filter((a: any) => a.status === 'leave');
+                    const leaveDetails = leaveEntries.map((l: any) => {
                         const staff = allStaff.find(s => s.id === l.staffId);
                         return { 
                             name: staff?.nameBn || 'অজানা', 
@@ -334,7 +336,7 @@ const TeachersOnLeaveCard = () => {
         <Card className="lg:col-span-1 shadow-md border-2 border-black bg-rose-50/30">
             <CardHeader className="bg-rose-100/50 rounded-t-lg pb-3">
                 <CardTitle className="text-lg flex items-center gap-2 text-rose-800">
-                    <UserMinus className="h-5 w-5" /> ছুটিতে থাকা শিক্ষক ও কর্মচারী
+                    <UserRound className="h-5 w-5" /> ছুটিতে থাকা শিক্ষক ও কর্মচারী
                 </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
@@ -595,7 +597,7 @@ const LiveRoutineCard = () => {
                                         <TableHeader className="bg-muted/50">
                                             <TableRow>
                                                 <TableHead className="font-black text-[10px]">সময়</TableHead>
-                                                <TableHead className="font-black text-[10px]">শিক্ষক</TableHead>
+                                                <TableHead className="font-black text-[10px]">শিক্ষকর</TableHead>
                                                 <TableHead className="font-black text-[10px]">শ্রেণি</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -643,7 +645,7 @@ const LiveRoutineCard = () => {
                                             <TableBody>
                                                 {periodInfo.nextClasses.map((nc, index) => (
                                                     <TableRow key={index} className="h-10">
-                                                        <TableCell className="text-[10px] font-bold text-slate-500">{toBengaliNumber(nc.time)}</TableCell>
+                                                        <TableCell className="text-[10px] font-bold text-slate-50">{toBengaliNumber(nc.time)}</TableCell>
                                                         <TableCell className="font-black text-indigo-900 text-xs">
                                                             {nc.teacher}
                                                             {nc.isProxy && <span className="ml-1 text-[8px] text-red-600 font-black">(বদলি)</span>}

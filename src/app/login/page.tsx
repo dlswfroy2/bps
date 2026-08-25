@@ -130,19 +130,19 @@ const BackgroundGallery = () => {
                     <div 
                         key={img.id}
                         className={cn(
-                            "absolute inset-0 transition-all duration-2000 ease-in-out",
-                            idx === currentIdx ? "opacity-100 scale-110" : "opacity-0 scale-100"
+                            "absolute inset-0 transition-opacity duration-1000 ease-in-out",
+                            idx === currentIdx ? "opacity-100" : "opacity-0"
                         )}
-                        style={{ transitionProperty: 'opacity, transform', transitionDuration: '2s' }}
+                        style={{ transitionProperty: 'opacity', transitionDuration: '2s' }}
                     >
                         <Image 
                             src={img.url} 
                             alt={img.title} 
                             fill 
                             priority={idx === 0}
-                            className="object-cover object-center blur-[2px]"
+                            className="object-cover object-center"
                         />
-                        <div className="absolute inset-0 bg-black/20" />
+                        <div className="absolute inset-0 bg-black/10" />
                     </div>
                 ))
             ) : (
@@ -340,6 +340,7 @@ export default function LoginPage() {
         const fetchStats = async () => {
             try {
                 const todayStr = format(new Date(), 'yyyy-MM-dd');
+                const bnToEn = (str: string) => str.toString().replace(/[০-৯]/g, d => "0123456789"["০১২৩৪৫৬৭৮৯".indexOf(d)].toString());
                 
                 const sPromise = getDocs(query(collection(db, 'students'), where('academicYear', '==', globalYear)));
                 const tPromise = getDocs(query(collection(db, 'staff'), where('isActive', '==', true), where('staffType', '==', 'teacher')));
@@ -405,7 +406,7 @@ export default function LoginPage() {
             }
         };
         fetchStats();
-    }, [db, globalYear]);
+    }, [db, globalYear, schoolInfo]);
 
     const handleAuthAction = async (action: 'signIn' | 'signUp', role: UserRole) => {
         setIsLoadingAuth(true);
@@ -757,7 +758,7 @@ export default function LoginPage() {
                                 </div>
                             </DialogHeader>
 
-                            <div className="p-8 space-y-8 bg-slate-50 overflow-y-auto max-h-[60vh]">
+                            <div className="p-6 space-y-6 bg-slate-50 overflow-y-auto max-h-[60vh]">
                                 <div className="grid grid-cols-2 gap-4">
                                     <Card className="p-4 text-center border-2 border-black/5 bg-white shadow-sm rounded-2xl">
                                         <p className="text-[9px] font-black text-muted-foreground uppercase mb-1">মোট নম্বর</p>
@@ -781,7 +782,7 @@ export default function LoginPage() {
 
                                 <div className="border-2 border-black/10 rounded-[32px] overflow-hidden bg-white shadow-xl">
                                     <Table>
-                                        <TableHeader className="bg-muted/50 h-14">
+                                        <TableHeader className="bg-muted/50 h-12">
                                             <TableRow>
                                                 <TableHead className="font-black text-xs text-black pl-8">বিষয়ের নাম</TableHead>
                                                 <TableHead className="text-center font-black text-xs text-black">প্রাপ্ত নম্বর</TableHead>
@@ -791,7 +792,7 @@ export default function LoginPage() {
                                         </TableHeader>
                                         <TableBody>
                                             {Array.from(searchResult.subjectResults.entries()).map(([name, res]) => (
-                                                <TableRow key={name} className="h-12">
+                                                <TableRow key={name} className="h-10">
                                                     <TableCell className="font-bold text-sm text-slate-700 pl-8">{name}</TableCell>
                                                     <TableCell className="text-center font-black text-blue-900 text-lg">{toBengaliNumber(res.marks)}</TableCell>
                                                     <TableCell className={cn("text-center font-black text-sm", res.isPass ? "text-slate-700" : "text-rose-600")}>{res.grade}</TableCell>
@@ -877,3 +878,4 @@ export default function LoginPage() {
         </div>
     );
 }
+

@@ -20,7 +20,7 @@ import {
     CheckCircle2, XCircle, ArrowLeft, GraduationCap, Users, 
     UserPlus, Bell, ChevronRight,
     TrendingUp, ShieldCheck, MapPin, Phone,
-    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles, LogIn, Printer, Clock
+    CalendarCheck, Trophy, ImageIcon, Megaphone, Sparkles, LogIn, Printer, Clock, UserRound
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useAcademicYear } from '@/context/AcademicYearContext';
@@ -1262,4 +1262,3 @@ export default function LoginPage() {
         </div>
     );
 }
-

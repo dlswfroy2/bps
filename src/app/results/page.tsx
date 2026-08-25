@@ -537,6 +537,21 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
     const bulkUploadRef = useRef<HTMLInputElement>(null);
     const [isBulkUploading, setIsBulkUploading] = useState(false);
 
+    // Add unique refs for each table to support scroll syncing
+    const tableContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const topScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+    const handleScrollSync = (key: string, source: 'top' | 'table') => {
+        const top = topScrollRefs.current[key];
+        const table = tableContainerRefs.current[key];
+        if (!top || !table) return;
+        if (source === 'top') {
+            table.scrollLeft = top.scrollLeft;
+        } else {
+            top.scrollLeft = table.scrollLeft;
+        }
+    };
+
     useEffect(() => { 
         if (db && user) getExams(db, selectedYear).then(setExams); 
     }, [db, selectedYear, user]);
@@ -818,7 +833,22 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
                             <h3 className="font-black text-primary text-sm uppercase">শাখা: {groupNamesMap[gk] || gk}</h3>
                             <Badge variant="secondary" className="font-black px-3 text-xs">মোট: {toBengaliNumber(results.length)} জন</Badge>
                         </div>
-                        <div className="table-container !border-2 !border-black relative rounded-b-lg !overflow-auto">
+                        
+                        {/* Top Scroll Sync Bar */}
+                        <div 
+                            ref={el => { topScrollRefs.current[gk] = el; }}
+                            onScroll={() => handleScrollSync(gk, 'top')}
+                            className="overflow-x-auto no-print mb-1 h-3 scrollbar-thin scrollbar-thumb-primary/20"
+                            style={{ width: '100%' }}
+                        >
+                            <div style={{ width: `${(subs.length * 150) + 400}px`, height: '1px' }} />
+                        </div>
+
+                        <div 
+                            ref={el => { tableContainerRefs.current[gk] = el; }}
+                            onScroll={() => handleScrollSync(gk, 'table')}
+                            className="table-container !border-2 !border-black relative rounded-b-lg !overflow-auto"
+                        >
                             <table className="min-w-max border-separate border-spacing-0 w-full">
                                 <thead className="z-30">
                                     <tr>

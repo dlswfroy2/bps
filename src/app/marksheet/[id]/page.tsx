@@ -396,15 +396,9 @@ function MarksheetContent() {
                             </thead>
                             <tbody>
                                 {sortedSubjects.map((subject, index) => {
-                                    const result = processedResult.subjectResults.get(subject.name);
-                                    const isFail = result?.isPass === false;
+                                    const res = processedResult.subjectResults.get(subject.name);
+                                    const isFail = res?.isPass === false;
                                     
-                                    const matchingRecord = resultsBySubject.find(r => 
-                                        normalize(r.subject) === normalize(subject.name) && 
-                                        r.className === student.className
-                                    );
-                                    const displayFullMarks = matchingRecord?.fullMarks ?? subject.fullMarks;
-
                                     return (
                                         <tr key={subject.code} className={cn("border-b border-black last:border-0", isFail ? "bg-red-50/30" : "")}>
                                             <td className="border-r border-black p-1 text-center font-medium text-gray-500">{index + 1}</td>
@@ -413,10 +407,10 @@ function MarksheetContent() {
                                                 {studentOptionalSubject === subject.name && <span className="text-[8px] text-blue-600 font-bold italic ml-2">(Optional)</span>}
                                             </td>
                                             <td className="border-r border-black p-1 text-center text-gray-600">{subject.code}</td>
-                                            <td className="border-r border-black p-1 text-center font-medium">{displayFullMarks}</td>
-                                            <td className={cn("border-r border-black p-1 text-center font-bold text-[14px]", isFail ? "text-red-600" : "text-blue-900")}>{result?.marks ?? '-'}</td>
-                                            <td className={cn("border-r border-black p-1 text-center font-black text-[12px]", isFail ? "text-red-600" : "")}>{result?.grade ?? '-'}</td>
-                                            <td className={cn("p-1 text-center font-bold", isFail ? "text-red-600" : "")}>{result?.point !== undefined ? result.point.toFixed(2) : '-'}</td>
+                                            <td className="border-r border-black p-1 text-center font-medium">{res?.fullMarks ?? subject.fullMarks}</td>
+                                            <td className={cn("border-r border-black p-1 text-center font-bold text-[14px]", isFail ? "text-red-600" : "text-blue-900")}>{res?.marks ?? '-'}</td>
+                                            <td className={cn("border-r border-black p-1 text-center font-black text-[12px]", isFail ? "text-red-600" : "")}>{res?.grade ?? '-'}</td>
+                                            <td className={cn("p-1 text-center font-bold", isFail ? "text-red-600" : "")}>{res?.point !== undefined ? res.point.toFixed(2) : '-'}</td>
                                         </tr>
                                     );
                                 })}

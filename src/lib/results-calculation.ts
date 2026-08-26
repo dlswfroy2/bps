@@ -1,4 +1,3 @@
-
 'use client';
 import type { Student } from './student-data';
 import { getSubjects, subjectNameNormalization } from './subjects';
@@ -15,6 +14,7 @@ export interface StudentSubjectResult {
     mcq?: number;
     practical?: number;
     marks: number;
+    fullMarks: number;
     grade: string;
     point: number;
     isPass: boolean;
@@ -99,11 +99,7 @@ export function processStudentResults(
                     return false;
                 }
                 
-                // If current subject is one of these two but isn't the one specified as optional, 
-                // and student has NOT selected it as optional, we need to decide which one to keep as compulsory.
-                // In Science, Physics, Chem, Bio, BGS are compulsory. HM and Agri are the choices.
-                // If none is marked optional, we keep both and it might reach 13.
-                // To prevent 13, if the current subject is one of these and NOT the optional one, we filter it out.
+                // Keep the chosen one
                 if ((currentSubNameNormalized === hmNormalized || currentSubNameNormalized === agriNormalized) && currentSubNameNormalized !== optionalSubjectNameNormalized) {
                     return false;
                 }
@@ -148,6 +144,7 @@ export function processStudentResults(
                 mcq,
                 practical,
                 marks: obtainedMarks,
+                fullMarks: fullMarks,
                 grade: isPassSubject ? grade : 'F',
                 point: isPassSubject ? point : 0,
                 isPass: isPassSubject
@@ -198,23 +195,16 @@ export function processStudentResults(
             subjectResults: subjectResultsMap,
         };
     }).sort((a, b) => {
-        // First sort: Passed students first
         if (a.isPass !== b.isPass) return a.isPass ? -1 : 1;
-        
-        // Second sort for passed: GPA (desc), then Marks (desc), then Roll (asc)
         if (a.isPass) {
             if (b.gpa !== a.gpa) return b.gpa - a.gpa;
             if (b.totalMarks !== a.totalMarks) return b.totalMarks - a.totalMarks;
             return a.student.roll - b.student.roll;
         }
-        
-        // Sorting for failed: fewer fails first, then marks
         if (a.failedSubjectsCount !== b.failedSubjectsCount) return a.failedSubjectsCount - b.failedSubjectsCount;
         return b.totalMarks - a.totalMarks;
     }).map((res, idx, self) => {
-        // Merit position calculation (only for passed students)
         if (!res.isPass) return res;
-        
         let meritPosition = idx + 1;
         if (idx > 0) {
             const prev = self[idx - 1];

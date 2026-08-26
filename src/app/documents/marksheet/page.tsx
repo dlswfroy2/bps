@@ -13,7 +13,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Student, studentFromDoc } from '@/lib/student-data';
 import { Exam, getExams } from '@/lib/exam-data';
 import { getAllResults, ClassResult } from '@/lib/results-data';
-import { getSubjects, Subject } from '@/lib/subjects';
+import { getSubjects } from '@/lib/subjects';
 import { processStudentResults, StudentProcessedResult } from '@/lib/results-calculation';
 import { Printer, ArrowLeft, User, Users, Info, FileBadge, Loader2, Minus, Plus } from 'lucide-react';
 import { useSchoolInfo } from '@/context/SchoolInfoContext';
@@ -420,7 +420,7 @@ const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, waterma
                                     <tr key={sIdx} className={cn("border-b border-black", isFail && "bg-red-50/50")}>
                                         <td className="border-r border-black p-1 text-center">{sIdx + 1}</td>
                                         <td className="border-r border-black p-1 pl-4 font-semibold">{sub.englishName}</td>
-                                        <td className="border-r border-black p-1 text-center">{sub.fullMarks}</td>
+                                        <td className="border-r border-black p-1 text-center">{sr?.fullMarks ?? sub.fullMarks}</td>
                                         <td className={cn("border-r border-black p-1 text-center font-bold", isFail ? "text-red-600" : "text-blue-900")}>{sr?.marks ?? '-'}</td>
                                         <td className={cn("border-r border-black p-1 text-center font-black", isFail ? "text-red-600" : "")}>{sr?.grade ?? '-'}</td>
                                         <td className={cn("p-1 text-center font-bold", isFail ? "text-red-600" : "")}>{sr?.point !== undefined ? sr.point.toFixed(2) : '-'}</td>

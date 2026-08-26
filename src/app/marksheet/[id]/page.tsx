@@ -44,7 +44,6 @@ function MarksheetContent() {
     const searchParams = useSearchParams();
     const studentId = params.id as string;
     const db = useFirestore();
-    const { user } = useAuth();
     const { schoolInfo } = useSchoolInfo();
 
     const [student, setStudent] = useState<Student | null>(null);
@@ -54,7 +53,7 @@ function MarksheetContent() {
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [allExams, setAllExams] = useState<Exam[]>([]);
-    const [watermarkOpacity, setWatermarkOpacity] = useState(0.1);
+    const [watermarkOpacity, setWatermarkOpacity] = useState(0.15);
 
     const academicYear = searchParams.get('academicYear') || new Date().getFullYear().toString();
     const initialExam = searchParams.get('examName') || 'বার্ষিক পরীক্ষা';
@@ -67,10 +66,8 @@ function MarksheetContent() {
 
             setIsLoading(true);
             try {
-                // 0. Fetch all exams for session
                 getExams(db, academicYear).then(data => setAllExams(data));
 
-                // 1. Fetch the specific student
                 const studentDoc = await getDoc(doc(db, 'students', studentId));
                 if (!studentDoc.exists()) {
                     setIsLoading(false);
@@ -79,7 +76,6 @@ function MarksheetContent() {
                 const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
                 setStudent(studentData);
 
-                // 2. Fetch all students in the same class (Needed for Merit calculation)
                 const classQuery = query(
                     collection(db, 'students'),
                     where('academicYear', '==', academicYear),
@@ -89,7 +85,6 @@ function MarksheetContent() {
                 const studentsList = classSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
                 setAllStudentsInClass(studentsList);
 
-                // 3. Fetch results
                 const allSubjectsForGroup = getSubjects(studentData.className, studentData.group || undefined).filter(s => s.isExamSubject !== false);
                 
                 const resultsPromises = allSubjectsForGroup
@@ -98,7 +93,6 @@ function MarksheetContent() {
                 const fetchedResultsBySubject = (await Promise.all(resultsPromises)).filter((result): result is ClassResult => !!result);
                 setResultsBySubject(fetchedResultsBySubject);
 
-                // 4. Filter subjects list based on effective full marks
                 const subjectsForThisStudent = allSubjectsForGroup.filter(subjectInfo => {
                     if (studentData.group === 'science' || studentData.group === 'arts' || studentData.group === 'commerce') {
                          if (studentData.optionalSubject === 'উচ্চতর গণিত' && subjectInfo.name === 'কৃষি শিক্ষা') return false;
@@ -113,7 +107,6 @@ function MarksheetContent() {
                     return effectiveFullMarks > 0;
                 });
 
-                // 5. Process results
                 const allFinalResults = processStudentResults(studentsList, fetchedResultsBySubject, allSubjectsForGroup);
                 const finalResultForThisStudent = allFinalResults.find(res => res.student.id === studentId);
 
@@ -191,10 +184,10 @@ function MarksheetContent() {
                         margin: 0 !important;
                     }
                     html, body {
-                        height: 100%;
+                        height: auto !important;
                         margin: 0 !important;
                         padding: 0 !important;
-                        overflow: hidden !important;
+                        overflow: visible !important;
                     }
                     .no-print {
                         display: none !important;
@@ -208,13 +201,15 @@ function MarksheetContent() {
                         box-shadow: none !important;
                         page-break-after: always !important;
                         overflow: hidden !important;
-                        position: absolute;
-                        top: 0;
-                        left: 0;
+                        position: relative !important;
                         display: flex !important;
                         flex-direction: column !important;
-                        z-index: 9999 !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    .watermark-layer img {
                         visibility: visible !important;
+                        display: block !important;
                     }
                 }
             `}</style>
@@ -231,7 +226,7 @@ function MarksheetContent() {
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="flex items-center gap-2 flex-1 sm:flex-initial bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-                        <Label className="text-[10px] font-black text-slate-500 uppercase px-1">Watermark</Label>
+                        <Label className="text-[10px] font-black text-slate-500 uppercase px-1">WATERMARK</Label>
                         <div className="flex items-center gap-1">
                             <Button 
                                 variant="ghost" 
@@ -291,20 +286,24 @@ function MarksheetContent() {
             <div className="printable-area marksheet-container w-[210mm] h-[297mm] bg-white p-8 relative flex flex-col box-border shadow-2xl print:shadow-none print:m-0">
                 {schoolInfo.logoUrl && (
                     <div 
-                        className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none"
+                        className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none watermark-layer"
                         style={{ opacity: watermarkOpacity }}
                     >
-                        <Image src={schoolInfo.logoUrl} alt="School Logo Watermark" width={300} height={300} className="object-contain" />
+                        <img 
+                            src={schoolInfo.logoUrl} 
+                            alt="Watermark" 
+                            className="w-[300px] h-[300px] object-contain" 
+                        />
                     </div>
                 )}
                 
-                <div className="relative z-10 border-[1.5px] border-black p-4 h-full flex flex-col">
+                <div className="relative z-10 border-[1.5px] border-black p-4 h-full flex flex-col bg-transparent">
                     {/* Header */}
                     <div className="printable-header mb-4 flex justify-between items-start">
                         <div className="flex items-center gap-4">
                             {schoolInfo.logoUrl && (
                                 <div className="w-20 h-20 relative">
-                                    <Image src={schoolInfo.logoUrl} alt="School Logo" fill className="object-contain" />
+                                    <Image src={schoolInfo.logoUrl} alt="School Logo" fill className="object-contain" priority />
                                 </div>
                             )}
                             <div className="text-left">

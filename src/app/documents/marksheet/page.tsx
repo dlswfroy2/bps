@@ -22,6 +22,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
+const toBengaliNumber = (str: string | number | undefined | null) => {
+    if (!str && str !== 0) return '';
+    const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return String(str).replace(/[0-9]/g, (w) => bengaliDigits[parseInt(w, 10)]);
+};
+
 const classNamesMap: { [key: string]: string } = { '6': '৬ষ্ঠ', '7': '৭ম', '8': '৮ম', '9': '৯ম', '10': '১০ম' };
 const classMap: { [key: string]: string } = { '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine', '10': 'Ten' };
 const groupMap: { [key: string]: string } = { 'science': 'Science', 'arts': 'Arts', 'commerce': 'Commerce', 'general': 'General' };
@@ -191,7 +197,7 @@ const MarksheetGeneratorPage = () => {
                                     </div>
 
                                     {mode === 'single' && (
-                                        <div className="space-y-2 animate-in slide-in-from-top-2">
+                                        <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                                             <Label className="font-bold">৫. শিক্ষার্থী নির্বাচন</Label>
                                             <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
                                                 <SelectTrigger className="bg-white">
@@ -261,7 +267,7 @@ const MarksheetGeneratorPage = () => {
 
             {/* Hidden Printable Area */}
             <div className="hidden print:block printable-area bg-white">
-                {resultsToPrint.map((res, idx) => (
+                {resultsToPrint.map((res) => (
                     <div key={res.student.id} className="w-[210mm] h-[297mm] mx-auto overflow-hidden relative bg-white" style={{ pageBreakAfter: 'always' }}>
                         <div className="p-8 h-full w-full box-border">
                             <MarksheetTemplate 
@@ -280,7 +286,7 @@ const MarksheetGeneratorPage = () => {
     );
 };
 
-const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, watermarkOpacity, isPrint = false }: any) => {
+const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, watermarkOpacity }: any) => {
     const student = result.student;
     const subjects = getSubjects(student.className, student.group).filter(s => s.isExamSubject !== false);
     const displayExamName = examNameEnglishMap[examName] || examName;
@@ -309,6 +315,9 @@ const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, waterma
             <style jsx>{`
                 .watermark-layer img { visibility: visible !important; display: block !important; }
                 .marksheet-content { border: 1.5px solid black; padding: 16px; height: 100%; display: flex; flex-direction: column; background: transparent; position: relative; z-index: 10; }
+                @media print {
+                  .marksheet-container { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                }
             `}</style>
 
             {schoolInfo.logoUrl && (

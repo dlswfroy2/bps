@@ -13,6 +13,14 @@ import { cn } from '@/lib/utils';
 
 const DOCUMENT_TOOLS = [
   { 
+    id: 'marksheet', 
+    label: 'মার্কশিট (Marksheet)', 
+    icon: FileBadge, 
+    href: '/documents/marksheet', 
+    color: 'text-violet-600 bg-violet-50', 
+    desc: 'শিক্ষার্থীদের বার্ষিক বা সাময়িক পরীক্ষার বিস্তারিত ফলাফল বিবরণী বা মার্কশিট প্রিন্ট করুন।' 
+  },
+  { 
     id: 'id-card', 
     label: 'পরিচয়পত্র (ID Card)', 
     icon: Contact, 

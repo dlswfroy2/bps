@@ -461,8 +461,8 @@ export default function LoginPage() {
             
             <header className="sticky top-0 z-[100] w-full h-16 md:h-24 bg-primary flex items-center justify-between px-4 sm:px-12 shadow-md">
                 <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-                    <div className="relative h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-full border-2 border-white/20 p-0.5 bg-white shadow-md">
-                        {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-full" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain p-1" />}
+                    <div className="relative h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-xl border-2 border-white/20 p-0.5 bg-white shadow-md">
+                        {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-md" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain p-1" />}
                     </div>
                     <div>
                         <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white leading-tight tracking-tight md:[text-shadow:1px_1px_0px_#000,2px_2px_4px_rgba(0,0,0,0.5)]">

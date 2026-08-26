@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -276,15 +275,15 @@ export function Header() {
                   <Button variant="ghost" size="icon" className="shrink-0 rounded-lg bg-white text-primary hover:bg-gray-100">
                     <Menu className="h-6 w-6" />
                   </Button>
-                </SheetTrigger>
+                </Trigger>
                 <SheetContent side="left" className="flex flex-col p-0 font-kalpurush h-full w-[260px]">
                   <SheetHeader className="p-2 border-b bg-primary/5 shrink-0">
                       <SheetTitle className="sr-only">Main Menu</SheetTitle>
                       <SheetDescription className="sr-only">Navigation and settings</SheetDescription>
                     <Link href="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
-                      {isSchoolInfoLoading ? <Skeleton className="h-6 w-6 rounded-full" /> : (schoolInfo.logoUrl && (
+                      {isSchoolInfoLoading ? <Skeleton className="h-6 w-6 rounded-md" /> : (schoolInfo.logoUrl && (
                         <div className="relative h-6 w-6">
-                          <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain" />
+                          <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain" />
                         </div>
                       ))}
                       <span className="font-black text-slate-900 truncate text-[10px]">{isSchoolInfoLoading ? <Skeleton className="h-4 w-20" /> : schoolInfo.name}</span>
@@ -364,7 +363,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2 sm:gap-4 md:gap-6">
             {!isSchoolInfoLoading && schoolInfo.logoUrl && (
               <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0">
-                <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain" />
+                <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain" />
               </div>
             )}
             <div className="flex flex-col items-center md:items-start">

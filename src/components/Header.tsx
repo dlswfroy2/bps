@@ -362,12 +362,12 @@ export function Header() {
 
         <Link href="/" className="flex items-center gap-2 sm:gap-4 md:gap-6">
             {!isSchoolInfoLoading && schoolInfo.logoUrl && (
-              <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0">
-                <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain" />
+              <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0 bg-white p-1 shadow-md border-2 border-white/20 rounded-full">
+                <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain rounded-full" />
               </div>
             )}
             <div className="flex flex-col items-center md:items-start">
-              <div className="text-xl sm:text-2xl md:text-[40px] font-black whitespace-nowrap tracking-tight md:[text-shadow:1px_1px_0px_#000,2px_2px_4px_rgba(0,0,0,0.5)] leading-tight">
+              <div className="text-xl sm:text-2xl md:text-[40px] font-black whitespace-nowrap tracking-tight text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-tight">
                 {isSchoolInfoLoading ? <Skeleton className="h-8 w-40 md:h-12 md:w-80" /> : schoolInfo.name}
               </div>
               <div className="flex items-center gap-2 mt-0.5">

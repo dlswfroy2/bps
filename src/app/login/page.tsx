@@ -402,7 +402,6 @@ export default function LoginPage() {
     };
 
     const handleResultSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
         const bnToEn = (str: string) => str.toString().replace(/[০-৯]/g, d => "0123456789"["০১২৩৪৫৬৭৮৯".indexOf(d)].toString());
         if (!db || !searchYear || !searchClass || !searchExam || !searchRoll || !searchStudentId) {
             toast({ variant: 'destructive', title: 'তথ্য অসম্পূর্ণ', description: 'সবগুলো ঘর পূরণ করুন। ' });
@@ -461,11 +460,11 @@ export default function LoginPage() {
             
             <header className="sticky top-0 z-[100] w-full h-16 md:h-24 bg-primary flex items-center justify-between px-4 sm:px-12 shadow-md">
                 <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-                    <div className="relative h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-xl border-2 border-white/20 p-0.5 bg-white shadow-md">
-                        {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-md" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain p-1" />}
+                    <div className="relative h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-full border-2 border-white/20 p-0.5 bg-white shadow-md">
+                        {isSchoolInfoLoading ? <Skeleton className="h-full w-full rounded-full" /> : <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain p-1 rounded-full" />}
                     </div>
                     <div>
-                        <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white leading-tight tracking-tight md:[text-shadow:1px_1px_0px_#000,2px_2px_4px_rgba(0,0,0,0.5)]">
+                        <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
                             {schoolInfo.name}
                         </h1>
                         <p className="text-[10px] md:text-xs font-bold text-white/80 uppercase tracking-widest mt-0.5">Digital Management Portal</p>
@@ -616,7 +615,7 @@ export default function LoginPage() {
                                 <DialogTitle className="text-3xl font-black flex items-center gap-2"><BookOpen className="h-8 w-8" /> ফলাফল অনুসন্ধান</DialogTitle>
                                 <DialogDescription className="text-white/80 font-bold text-lg mt-1">সঠিক তথ্য দিয়ে ড্রাফট রেজাল্ট সামারি দেখুন</DialogDescription>
                             </DialogHeader>
-                            <form onSubmit={handleResultSearch} className="p-8 space-y-6 bg-white">
+                            <form onSubmit={(e) => { e.preventDefault(); handleResultSearch(e); }} className="p-8 space-y-6 bg-white">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="font-black text-xs uppercase">শিক্ষাবর্ষ</Label>

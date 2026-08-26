@@ -1,12 +1,11 @@
 import { FirebaseOptions } from 'firebase/app';
 
 export const firebaseConfig: FirebaseOptions = {
-  apiKey: "AIzaSyAUZRXXpUzOuVhufOLafZ6NxnIq71pL27Q",
-  authDomain: "birganj-pouro-high-schoo-ce8e5.firebaseapp.com",
-  databaseURL: "https://birganj-pouro-high-schoo-ce8e5-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "birganj-pouro-high-schoo-ce8e5",
-  storageBucket: "birganj-pouro-high-schoo-ce8e5.firebasestorage.app",
-  messagingSenderId: "316839573028",
-  appId: "1:316839573028:web:9c9dc33e497783cfde8ab1",
-  measurementId: "G-FEYQHXRX92"
+  apiKey: "AIzaSyDesnLAWm6FWQ4QA6ncwmt1aQ_jjR80tIY",
+  authDomain: "bphs2019-77d29.firebaseapp.com",
+  projectId: "bphs2019-77d29",
+  storageBucket: "bphs2019-77d29.firebasestorage.app",
+  messagingSenderId: "262275702886",
+  appId: "1:262275702886:web:8edca464604494c361cda7",
+  measurementId: "G-3FG6T2TGMZ"
 };

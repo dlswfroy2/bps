@@ -92,6 +92,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    // Public read for exam configurations
     match /exams/{id} {
       allow read: if true;
       allow write: if isAuthed(); 

@@ -43,8 +43,9 @@ export const getAttendanceFromStorage = async (db: Firestore): Promise<DailyAtte
             path: ATTENDANCE_COLLECTION,
             operation: 'list',
         } satisfies SecurityRuleContext));
+    } else {
+      console.error("Error getting attendance:", e);
     }
-    console.error("Error getting attendance:", e);
     return [];
   }
 };
@@ -66,7 +67,6 @@ export const saveDailyAttendance = (db: Firestore, record: DailyAttendance) => {
   // We do NOT await here in the calling components to allow immediate offline UI updates.
   // setDoc with merge: true handles both creates and updates seamlessly while offline.
   return setDoc(docRef, dataToSave, { merge: true }).catch(async (serverError: any) => {
-    console.error("Error saving attendance:", serverError);
     if (serverError.code === 'permission-denied') {
       const permissionError = new FirestorePermissionError({
         path: docRef.path,
@@ -74,6 +74,8 @@ export const saveDailyAttendance = (db: Firestore, record: DailyAttendance) => {
         requestResourceData: dataToSave,
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
+    } else {
+      console.error("Error saving attendance:", serverError);
     }
     throw serverError;
   });
@@ -117,6 +119,8 @@ export const deleteDailyAttendance = async (db: Firestore, date: string, classNa
         operation: 'delete',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
+    } else {
+      console.error("Error deleting attendance record:", serverError);
     }
     throw serverError;
   }
@@ -132,7 +136,14 @@ export const getAttendanceForDate = async (db: Firestore, date: string, academic
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyAttendance));
     } catch (e: any) {
-        console.error("Error getting attendance for date:", e);
+        if (e.code === 'permission-denied') {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: ATTENDANCE_COLLECTION,
+            operation: 'list',
+          }));
+        } else {
+          console.error("Error getting attendance for date:", e);
+        }
         return [];
     }
 }
@@ -162,8 +173,14 @@ export const getAttendanceForClassAndDate = async (db: Firestore, date: string, 
         }
         return undefined;
     } catch(e: any) {
-        // Log but don't throw blocking error for offline
-        console.log("Offline or error during fetch:", e.message);
+        if (e.code === 'permission-denied') {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: ATTENDANCE_COLLECTION,
+            operation: 'get',
+          }));
+        } else {
+          console.log("Offline or error during fetch:", e.message);
+        }
         return undefined;
     }
 };
@@ -219,8 +236,9 @@ export const getConsecutiveAbsences = async (db: Firestore, className: string, a
                 path: ATTENDANCE_COLLECTION, 
                 operation: 'list' 
             } satisfies SecurityRuleContext));
+        } else {
+          console.error("Error checking consecutive absences:", e);
         }
-        console.error("Error checking consecutive absences:", e);
         return [];
     }
 }

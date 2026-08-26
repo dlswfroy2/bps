@@ -7,6 +7,8 @@ import { useAuth as useFirebaseAuth } from '@/firebase';
 import { useFirestore } from '@/firebase';
 import { User, userFromDoc } from '@/lib/user';
 import { defaultPermissions } from '@/lib/permissions';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AuthContextType {
   user: User | null;
@@ -57,9 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setLoading(false);
           }
-        }, (error) => {
-            if (error.code === 'permission-denied') return;
-            console.error("Auth snapshot error:", error);
+        }, async (error) => {
+            if (error.code === 'permission-denied') {
+              const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'get',
+              });
+              errorEmitter.emit('permission-error', permissionError);
+            } else {
+              console.error("Auth snapshot error:", error);
+            }
             setLoading(false);
         });
       } else {

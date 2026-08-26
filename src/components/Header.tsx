@@ -275,7 +275,7 @@ export function Header() {
                   <Button variant="ghost" size="icon" className="shrink-0 rounded-lg bg-white text-primary hover:bg-gray-100">
                     <Menu className="h-6 w-6" />
                   </Button>
-                </Trigger>
+                </SheetTrigger>
                 <SheetContent side="left" className="flex flex-col p-0 font-kalpurush h-full w-[260px]">
                   <SheetHeader className="p-2 border-b bg-primary/5 shrink-0">
                       <SheetTitle className="sr-only">Main Menu</SheetTitle>

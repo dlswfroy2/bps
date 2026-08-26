@@ -81,7 +81,7 @@ export function processStudentResults(
 
         const groupAllowedSubjects = getSubjects(student.className, studentGroupNormalized);
         
-        // Final subject list for this student (max 12 for 9-10)
+        // Final subject list for this student
         const subjectsForStudent = groupAllowedSubjects.filter(subInfo => {
             const currentSubNameNormalized = normalize(subInfo.name);
             
@@ -90,16 +90,12 @@ export function processStudentResults(
                 const hmNormalized = normalize('উচ্চতর গণিত');
                 const agriNormalized = normalize('কৃষি শিক্ষা');
                 
-                // If student takes Higher Math, exclude Agriculture
                 if (optionalSubjectNameNormalized === hmNormalized && currentSubNameNormalized === agriNormalized) {
                     return false;
                 }
-                // If student takes Agriculture, exclude Higher Math
                 if (optionalSubjectNameNormalized === agriNormalized && currentSubNameNormalized === hmNormalized) {
                     return false;
                 }
-                
-                // Keep the chosen one
                 if ((currentSubNameNormalized === hmNormalized || currentSubNameNormalized === agriNormalized) && currentSubNameNormalized !== optionalSubjectNameNormalized) {
                     return false;
                 }
@@ -115,7 +111,7 @@ export function processStudentResults(
         subjectsForStudent.forEach(subjectInfo => {
             const normalizedSubjectName = normalize(subjectInfo.name);
             
-            // Find result record for this specific subject and class
+            // CRITICAL: Find result record for this specific subject to get dynamic fullMarks
             const classResult = resultsBySubject.find(r => 
                 normalize(r.subject) === normalizedSubjectName && 
                 r.className === student.className &&
@@ -123,28 +119,32 @@ export function processStudentResults(
             );
 
             const studentResult = classResult?.results.find(r => r.studentId === student.id);
-            const fullMarks = classResult?.fullMarks || subjectInfo.fullMarks;
+            // Use database fullMarks if it exists, otherwise fall back to system default
+            const effectiveFullMarks = (classResult && typeof classResult.fullMarks === 'number') ? classResult.fullMarks : subjectInfo.fullMarks;
+
+            // Skip subjects with 0 full marks (like Physical Education in some classes)
+            if (effectiveFullMarks <= 0) return;
 
             const written = studentResult?.written;
             const mcq = studentResult?.mcq;
             const practical = studentResult?.practical;
             const obtainedMarks = (written || 0) + (mcq || 0) + (practical || 0);
             
-            const passMark = Math.ceil(fullMarks * 0.33);
+            const passMark = Math.ceil(effectiveFullMarks * 0.33);
             const isPassSubject = obtainedMarks >= passMark;
             
-            const percentageForGrade = (obtainedMarks / fullMarks) * 100;
+            const percentageForGrade = (obtainedMarks / effectiveFullMarks) * 100;
             const { grade, point } = getGradePoint(percentageForGrade);
             
             totalMarks += obtainedMarks;
-            totalPossibleMarks += fullMarks;
+            totalPossibleMarks += effectiveFullMarks;
             
             subjectResultsMap.set(subjectInfo.name, {
                 written,
                 mcq,
                 practical,
                 marks: obtainedMarks,
-                fullMarks: fullMarks,
+                fullMarks: effectiveFullMarks,
                 grade: isPassSubject ? grade : 'F',
                 point: isPassSubject ? point : 0,
                 isPass: isPassSubject
@@ -158,6 +158,8 @@ export function processStudentResults(
 
         subjectsForStudent.forEach(subjectInfo => {
             const result = subjectResultsMap.get(subjectInfo.name);
+            if (!result) return; // Skip subjects with 0 fullMarks that were not added to map
+
             const isOptional = normalize(subjectInfo.name) === optionalSubjectNameNormalized;
 
             if (isOptional) {

@@ -34,7 +34,7 @@ import {
     Edit2, CalendarX, Check, 
     CalendarDays, CalendarCheck, Plus, Save, Loader2, 
     ListChecks, ChevronRight, UserX, Printer, Wifi, WifiOff, Trash2,
-    Info
+    Info, AlertCircle
 } from 'lucide-react';
 import { 
     AlertDialog, 
@@ -1371,4 +1371,3 @@ export default function AttendancePage() {
         </div>
     );
 }
-

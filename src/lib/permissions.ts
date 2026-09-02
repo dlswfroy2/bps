@@ -57,6 +57,7 @@ export const availablePermissions = [
   { id: 'manage:transactions', label: 'সাধারণ লেনদেন ম্যানেজ করুন' },
   
   { id: 'manage:documents', label: 'ডকুমেন্ট ম্যানেজ করুন' },
+  { id: 'view:archive', label: 'নথিপত্র (ডিজিটাল আর্কাইভ) দেখুন' },
   { id: 'manage:archive', label: 'ডিজিটাল আর্কাইভ (নথিপত্র) ম্যানেজ করুন' },
   { id: 'view:routines', label: 'রুটিন দেখুন' },
   { id: 'manage:routines', label: 'রুটিন ম্যানেজ করুন' },
@@ -102,7 +103,7 @@ export const defaultPermissions: { [key: string]: string[] } = {
     'view:routines',
     'view:proxy-classes',
     'manage:documents',
-    'manage:archive',
+    'view:archive',
     'send:messaging'
   ],
 };

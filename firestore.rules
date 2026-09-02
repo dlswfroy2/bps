@@ -93,7 +93,7 @@ service cloud.firestore {
     }
     
     match /exams/{id} {
-      allow read: if true; 
+      allow read: if true;
       allow write: if isAuthed(); 
     }
 

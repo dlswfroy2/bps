@@ -107,7 +107,7 @@ const mainMenuItems = [
   { id: 'accounts', label: 'হিসাব শাখা', icon: Banknote, href: '/accounts', permission: 'view:accounts', color: 'bg-teal-50 text-teal-700 border-teal-100' },
   { id: 'staff', label: 'শিক্ষক ও কর্মচারী', icon: Users2, href: '/staff', permission: 'view:staff', color: 'bg-orange-50 text-orange-700 border-orange-100' },
   { id: 'documents', label: 'ডকুমেন্ট', icon: FileText, href: '/documents', permission: 'manage:documents', color: 'bg-slate-50 text-slate-700 border-slate-100' },
-  { id: 'archive', label: 'নথিপত্র (আর্কাইভ)', icon: FolderSearch, href: '/documents/archive', permission: 'manage:archive', color: 'bg-rose-50 text-rose-700 border-rose-100' },
+  { id: 'archive', label: 'নথিপত্র (আর্কাইভ)', icon: FolderSearch, href: '/documents/archive', permission: ['view:archive', 'manage:archive'], color: 'bg-rose-50 text-rose-700 border-rose-100' },
   { id: 'routines', label: 'রুটিন', icon: CalendarClock, href: '/routines', permission: 'view:routines', color: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100' },
   { id: 'settings', label: 'সেটিং', icon: Settings, href: '/settings', permission: 'manage:settings', color: 'bg-gray-50 text-gray-700 border-gray-100' },
 ];

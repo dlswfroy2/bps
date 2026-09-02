@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -515,6 +516,7 @@ const permissionGroups = [
     { title: 'হিসাব ও ফি', ids: ['view:accounts', 'collect:fees', 'manage:fee-setup', 'special:edit-transaction', 'special:delete-transaction', 'view:collection-report', 'view:expense-report', 'view:accounts-monthly-report', 'view:cashbook-ledger', 'manage:transactions'] },
     { title: 'রুটিন ও বদলি ক্লাস', ids: ['view:routines', 'manage:routines', 'view:proxy-classes', 'manage:proxy-classes'] },
     { title: 'ডকুমেন্ট', ids: ['manage:documents'] },
+    { title: 'নথিপত্র ও আর্কাইভ', ids: ['view:archive', 'manage:archive'] },
     { title: 'মেসেজিং', ids: ['send:messaging', 'manage:messaging'] },
     { title: 'সিস্টেম সেটিংস', ids: ['manage:settings'] },
 ];
@@ -1082,45 +1084,45 @@ export default function SettingsPage() {
     return (
         <div className="flex min-h-screen w-full flex-col bg-[#F6F7F9] font-kalpurush">
             <Header />
-            <main className="flex-1 flex flex-col md:flex-row h-full max-w-[1600px] mx-auto w-full md:p-6 lg:p-10 gap-8 pb-40">
-                
-                {/* Sidebar Navigation - Fixed/Sticky */}
-                <aside className="w-full md:w-72 shrink-0 space-y-1 no-print bg-white md:bg-transparent p-4 md:p-0 border-b md:border-0 sticky top-20 md:top-28 self-start">
-                    <h2 className="text-3xl font-black mb-8 px-4 hidden md:block text-slate-900 tracking-tight">সেটিংস</h2>
-                    <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 gap-1 scrollbar-none">
-                        {sidebarItems.map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => setActiveSection(item.id)}
-                                className={cn(
-                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-bold whitespace-nowrap min-w-fit",
-                                    activeSection === item.id 
-                                        ? "bg-white shadow-md text-primary scale-105" 
-                                        : "text-muted-foreground hover:bg-slate-200/50"
-                                )}
-                            >
-                                <div className={cn("p-1.5 rounded-lg shrink-0", activeSection === item.id ? item.color : "bg-muted")}>
-                                    <item.icon className="h-4 w-4" />
-                                </div>
-                                <span className="text-base font-black">{item.label}</span>
-                                {activeSection === item.id && <ChevronRight className="ml-auto h-4 w-4 hidden md:block" />}
-                            </button>
-                        ))}
-                    </div>
-                </aside>
+            <main className="flex-1 p-4 md:p-10 pb-40">
+                <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row gap-8">
+                    {/* Sidebar Navigation - Fixed/Sticky */}
+                    <aside className="w-full md:w-64 shrink-0 space-y-1 no-print bg-white md:bg-transparent p-4 md:p-0 border-b md:border-0 sticky top-20 md:top-28 self-start">
+                        <h2 className="text-3xl font-black mb-8 px-4 hidden md:block text-slate-900 tracking-tight">সেটিংস</h2>
+                        <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 gap-1 scrollbar-none">
+                            {sidebarItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveSection(item.id)}
+                                    className={cn(
+                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-bold whitespace-nowrap min-w-fit",
+                                        activeSection === item.id 
+                                            ? "bg-white shadow-md text-primary scale-105" 
+                                            : "text-muted-foreground hover:bg-slate-200/50"
+                                    )}
+                                >
+                                    <div className={cn("p-1.5 rounded-lg shrink-0", activeSection === item.id ? item.color : "bg-muted")}>
+                                        <item.icon className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-base font-black">{item.label}</span>
+                                    {activeSection === item.id && <ChevronRight className="ml-auto h-4 w-4 hidden md:block" />}
+                                </button>
+                            ))}
+                        </div>
+                    </aside>
 
-                <div className="flex-1 min-w-0 bg-white md:rounded-[32px] shadow-2xl md:border-[1px] border-slate-200/50 overflow-hidden min-h-[700px] flex flex-col transition-all duration-500 animate-in fade-in slide-in-from-right-4">
-                    <div className="p-6 sm:p-10 lg:p-14 flex-1">
-                        {activeSection === 'profile' && <ProfileSettings />}
-                        {activeSection === 'school' && isAdmin && <SchoolInfoSettings />}
-                        {activeSection === 'gallery' && isAdmin && <GalleryManagementSettings />}
-                        {activeSection === 'holidays' && isAdmin && <HolidaySettings />}
-                        {activeSection === 'users' && isAdmin && <UserManagementSettings />}
-                        {activeSection === 'backup' && isAdmin && <BackupAndExportSettings />}
-                        {activeSection === 'system' && isAdmin && <SystemUsageInfo />}
+                    <div className="flex-1 min-w-0 bg-white md:rounded-[32px] shadow-2xl md:border-[1px] border-slate-200/50 overflow-hidden min-h-[700px] flex flex-col transition-all duration-500 animate-in fade-in slide-in-from-right-4">
+                        <div className="p-6 sm:p-10 lg:p-14 flex-1">
+                            {activeSection === 'profile' && <ProfileSettings />}
+                            {activeSection === 'school' && isAdmin && <SchoolInfoSettings />}
+                            {activeSection === 'gallery' && isAdmin && <GalleryManagementSettings />}
+                            {activeSection === 'holidays' && isAdmin && <HolidaySettings />}
+                            {activeSection === 'users' && isAdmin && <UserManagementSettings />}
+                            {activeSection === 'backup' && isAdmin && <BackupAndExportSettings />}
+                            {activeSection === 'system' && isAdmin && <SystemUsageInfo />}
+                        </div>
                     </div>
                 </div>
-
             </main>
         </div>
     );

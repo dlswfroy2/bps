@@ -1,3 +1,4 @@
+
 'use client';
 
 // This is a list of available permissions in the system.
@@ -56,6 +57,7 @@ export const availablePermissions = [
   { id: 'manage:transactions', label: 'সাধারণ লেনদেন ম্যানেজ করুন' },
   
   { id: 'manage:documents', label: 'ডকুমেন্ট ম্যানেজ করুন' },
+  { id: 'manage:archive', label: 'ডিজিটাল আর্কাইভ (নথিপত্র) ম্যানেজ করুন' },
   { id: 'view:routines', label: 'রুটিন দেখুন' },
   { id: 'manage:routines', label: 'রুটিন ম্যানেজ করুন' },
   { id: 'view:proxy-classes', label: 'বদলি ক্লাস দেখুন' },
@@ -100,6 +102,7 @@ export const defaultPermissions: { [key: string]: string[] } = {
     'view:routines',
     'view:proxy-classes',
     'manage:documents',
+    'manage:archive',
     'send:messaging'
   ],
 };

@@ -92,9 +92,8 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Public read for exam configurations
     match /exams/{id} {
-      allow read: if true;
+      allow read: if true; 
       allow write: if isAuthed(); 
     }
 
@@ -154,6 +153,16 @@ service cloud.firestore {
       allow read: if true; // Allow public read for landing page stats
       allow write: if isAuthed() && (hasPermission('manage:public-records') || isAdmin());
       allow delete: if isAdmin();
+    }
+
+    match /archiveFolders/{id} {
+      allow read: if isAuthed();
+      allow write: if isAuthed() && (hasPermission('manage:archive') || isAdmin());
+    }
+
+    match /archivedDocuments/{id} {
+      allow read: if isAuthed();
+      allow write: if isAuthed() && (hasPermission('manage:documents') || hasPermission('manage:archive') || isAdmin());
     }
   }
 }

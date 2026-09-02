@@ -1,44 +1,43 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAcademicYear } from '@/context/AcademicYearContext';
 import { useFirestore } from '@/firebase';
-import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Student, studentFromDoc } from '@/lib/student-data';
 import { Exam, getExams } from '@/lib/exam-data';
 import { getAllResults, ClassResult } from '@/lib/results-data';
 import { getSubjects } from '@/lib/subjects';
 import { processStudentResults, StudentProcessedResult } from '@/lib/results-calculation';
-import { Printer, Loader2, ArrowLeft, User, Users, Info, FileBadge, Minus, Plus } from 'lucide-react';
+import { Printer, ArrowLeft, User, Users, Info, FileBadge, Loader2, Minus, Plus } from 'lucide-react';
 import { useSchoolInfo } from '@/context/SchoolInfoContext';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
+const toBengaliNumber = (str: string | number | undefined | null) => {
+    if (!str && str !== 0) return '';
+    const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return String(str).replace(/[0-9]/g, (w) => bengaliDigits[parseInt(w, 10)]);
+};
+
 const classNamesMap: { [key: string]: string } = { '6': '৬ষ্ঠ', '7': '৭ম', '8': '৮ম', '9': '৯ম', '10': '১০ম' };
 const classMap: { [key: string]: string } = { '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine', '10': 'Ten' };
 const groupMap: { [key: string]: string } = { 'science': 'Science', 'arts': 'Arts', 'commerce': 'Commerce', 'general': 'General' };
+const religionMap: { [key: string]: string } = { 'islam': 'Islam', 'hinduism': 'Hinduism', 'buddhism': 'Buddhism', 'christianity': 'Christianity', 'other': 'Other' };
 
 const examNameEnglishMap: { [key: string]: string } = {
     'অর্ধ-বার্ষিক পরীক্ষা': 'Half-Yearly Examination',
     'বার্ষিক পরীক্ষা': 'Annual Examination',
     'প্রাক-নির্বাচনী পরীক্ষা': 'Pre-Test Examination',
     'নির্বাচনী পরীক্ষা': 'Test Examination'
-};
-
-const toBengaliNumber = (str: string | number | undefined | null) => {
-    if (!str && str !== 0) return '';
-    const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-    return String(str).replace(/[0-9]/g, (w) => bengaliDigits[parseInt(w, 10)]);
 };
 
 const gradingScale = [
@@ -51,6 +50,12 @@ const gradingScale = [
     { interval: '0-32', point: '0.00', grade: 'F' },
 ];
 
+const normalize = (name: string) => {
+    if (!name) return "";
+    const trimmed = name.trim();
+    return (trimmed).toLowerCase();
+};
+
 const MarksheetGeneratorPage = () => {
     const db = useFirestore();
     const { schoolInfo } = useSchoolInfo();
@@ -60,6 +65,7 @@ const MarksheetGeneratorPage = () => {
     const [exams, setExams] = useState<Exam[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [selectedClass, setSelectedClass] = useState<string>('6');
+    const [selectedGroup, setSelectedGroup] = useState<string>('all');
     const [allStudents, setAllStudents] = useState<Student[]>([]);
     const [classResults, setClassResults] = useState<ClassResult[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -73,13 +79,10 @@ const MarksheetGeneratorPage = () => {
 
     useEffect(() => {
         if (!db || !isClient) return;
-        getExams(db, selectedYear).then(data => {
-            setExams(data);
-            if (data.length > 0) setSelectedExam(data[0]);
-        });
+        getExams(db, selectedYear).then(setExams);
     }, [db, selectedYear, isClient]);
 
-    const fetchClassData = async () => {
+    const fetchClassData = useCallback(async () => {
         if (!db || !selectedClass || !selectedExam || !isClient) return;
         setIsLoading(true);
         try {
@@ -89,7 +92,8 @@ const MarksheetGeneratorPage = () => {
                 where("className", "==", selectedClass)
             );
             const studentSnap = await getDocs(studentQuery);
-            setAllStudents(studentSnap.docs.map(studentFromDoc));
+            const students = studentSnap.docs.map(studentFromDoc);
+            setAllStudents(students);
 
             const results = await getAllResults(db, selectedYear, selectedExam.name);
             setClassResults(results.filter(r => r.className === selectedClass));
@@ -97,18 +101,20 @@ const MarksheetGeneratorPage = () => {
             console.error(e);
         }
         setIsLoading(false);
-    };
+    }, [db, selectedClass, selectedExam, selectedYear, isClient]);
 
     useEffect(() => {
         fetchClassData();
-    }, [selectedClass, selectedExam, selectedYear, isClient]);
+    }, [fetchClassData]);
 
     const processedResults = useMemo(() => {
         if (allStudents.length === 0) return [];
-        // Important: getSubjects without group returns all possible subjects for class 9-10
         const subs = getSubjects(selectedClass);
-        return processStudentResults(allStudents, classResults, subs);
-    }, [allStudents, classResults, selectedClass]);
+        const filteredStudents = allStudents.filter(s => 
+            selectedGroup === 'all' || (s.group || '').toLowerCase().trim() === selectedGroup.toLowerCase().trim()
+        );
+        return processStudentResults(filteredStudents, classResults, subs);
+    }, [allStudents, classResults, selectedClass, selectedGroup]);
 
     const availableStudents = useMemo(() => {
         return processedResults.map(r => r.student).sort((a, b) => (a.roll || 0) - (b.roll || 0));
@@ -160,18 +166,34 @@ const MarksheetGeneratorPage = () => {
                                         </Select>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label className="font-bold">২. শ্রেণি নির্বাচন করুন</Label>
-                                        <Select value={selectedClass} onValueChange={setSelectedClass}>
-                                            <SelectTrigger className="bg-white"><SelectValue placeholder="শ্রেণি নির্বাচন" /></SelectTrigger>
-                                            <SelectContent>
-                                                {['6', '7', '8', '9', '10'].map(cls => <SelectItem key={cls} value={cls}>{classNamesMap[cls]} শ্রেণি</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="font-bold">২. শ্রেণি</Label>
+                                            <Select value={selectedClass} onValueChange={setSelectedClass}>
+                                                <SelectTrigger className="bg-white"><SelectValue placeholder="শ্রেণি নির্বাচন" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {['6', '7', '8', '9', '10'].map(cls => <SelectItem key={cls} value={cls}>{classNamesMap[cls]} শ্রেণি</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {parseInt(selectedClass) >= 9 && (
+                                            <div className="space-y-2">
+                                                <Label className="font-bold">৩. শাখা</Label>
+                                                <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                                                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">সকল শাখা</SelectItem>
+                                                        <SelectItem value="science">বিজ্ঞান</SelectItem>
+                                                        <SelectItem value="arts">মানবিক</SelectItem>
+                                                        <SelectItem value="commerce">ব্যবসায় শিক্ষা</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label className="font-bold">৩. প্রিন্ট মোড</Label>
+                                        <Label className="font-bold">৪. প্রিন্ট মোড</Label>
                                         <Tabs value={mode} onValueChange={(v: any) => setMode(v)}>
                                             <TabsList className="grid grid-cols-2 w-full">
                                                 <TabsTrigger value="bulk" className="gap-2 font-bold"><Users className="h-4 w-4" /> শ্রেণিভিত্তিক</TabsTrigger>
@@ -182,7 +204,7 @@ const MarksheetGeneratorPage = () => {
 
                                     {mode === 'single' && (
                                         <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                            <Label className="font-bold">৪. শিক্ষার্থী নির্বাচন</Label>
+                                            <Label className="font-bold">৫. শিক্ষার্থী নির্বাচন</Label>
                                             <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
                                                 <SelectTrigger className="bg-white">
                                                     <SelectValue placeholder="শিক্ষার্থী সিলেক্ট করুন" />
@@ -271,8 +293,25 @@ const MarksheetGeneratorPage = () => {
 
 const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, watermarkOpacity }: any) => {
     const student = result.student;
-    // Get canonical subjects for student's group
-    const subjects = getSubjects(student.className, student.group).filter(s => s.isExamSubject !== false);
+    
+    // Filter subjects to show only what the student actually took (exclusive logic for Science 9-10)
+    const allSubjectsForGroup = getSubjects(student.className, student.group).filter(s => s.isExamSubject !== false);
+    const subjects = allSubjectsForGroup.filter(subInfo => {
+        const subNameNorm = normalize(subInfo.name);
+        const optSubNorm = normalize(student.optionalSubject || '');
+        const classNum = parseInt(student.className);
+
+        if (classNum >= 9 && (student.group?.toLowerCase() === 'science' || student.group === 'বিজ্ঞান')) {
+            const hmNorm = normalize('উচ্চতর গণিত');
+            const agriNorm = normalize('কৃষি শিক্ষা');
+            if (subNameNorm === hmNorm || subNameNorm === agriNorm) {
+                if (optSubNorm && subNameNorm !== optSubNorm) return false;
+            }
+        }
+        return true;
+    });
+
+    const sortedSubjects = [...subjects].sort((a,b) => parseInt(a.code) - parseInt(b.code));
     const displayExamName = examNameEnglishMap[examName] || examName;
 
     const renderMeritPosition = (position?: number) => {
@@ -300,7 +339,7 @@ const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, waterma
                 .watermark-layer img { visibility: visible !important; display: block !important; }
                 .marksheet-content { border: 1.5px solid black; padding: 16px; height: 100%; display: flex; flex-direction: column; background: transparent; position: relative; z-index: 10; }
                 @media print {
-                  .marksheet-container { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+                  .marksheet-container { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
                 }
             `}</style>
 
@@ -326,7 +365,7 @@ const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, waterma
                             <h1 className="text-2xl font-black uppercase text-[#003366] leading-none mb-1">
                                 {schoolInfo.nameEn || "BIRGANJ POURO HIGH SCHOOL"}
                             </h1>
-                            <p className="text-sm font-bold text-gray-700">{schoolInfo.address || "Birganj, Dinajpur"}</p>
+                            <p className="text-sm font-bold text-gray-700">{schoolInfo.address}</p>
                             <div className="mt-2 inline-block bg-[#eef6ff] px-3 py-1 rounded border border-[#b3d7ff]">
                                 <p className="text-xs text-[#0056b3] font-bold">Academic Session: {academicYear}</p>
                             </div>
@@ -337,9 +376,9 @@ const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, waterma
                         <table className="border-collapse border border-black text-center w-full">
                             <thead className="bg-gray-100">
                                 <tr className="border-b border-black">
-                                    <th className="p-1 border-r border-black">Range</th>
-                                    <th className="p-1 border-r border-black">GP</th>
-                                    <th className="p-1">Grade</th>
+                                    <th className="p-1 px-2 border-r border-black font-bold">Range</th>
+                                    <th className="p-1 px-2 border-r border-black font-bold">GP</th>
+                                    <th className="p-1 px-2 font-bold">Grade</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -369,9 +408,13 @@ const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, waterma
                         <div className="font-bold text-gray-600 uppercase">Father's Name</div><div>: {student.fatherNameEn || student.fatherNameBn}</div>
                         <div className="font-bold text-gray-600 text-right uppercase">Roll No.</div><div className="font-bold">: {student.roll}</div>
                     </div>
-                    <div className="grid grid-cols-[1.5fr_4fr_1fr_2fr] gap-x-4 mt-1">
-                        <div className="font-bold text-gray-600 uppercase">Student ID</div><div className="font-black">: {student.generatedId}</div>
+                    <div className="grid grid-cols-[1.5fr_4fr_1fr_2fr] gap-x-4 mt-1 border-b pb-1">
+                        <div className="font-bold text-gray-600 uppercase">Mother's Name</div><div>: {student.motherNameEn || student.motherNameEn || student.motherNameBn}</div>
                         <div className="font-bold text-gray-600 text-right uppercase">Group</div><div>: {student.group ? groupMap[student.group.toLowerCase()] || student.group : 'General'}</div>
+                    </div>
+                    <div className="grid grid-cols-[1.5fr_4fr_1fr_2fr] gap-x-4 mt-1">
+                        <div className="font-bold text-gray-600 uppercase">Student ID</div><div className="font-black">: {student.generatedId || '-'}</div>
+                        <div className=""></div><div></div>
                     </div>
                 </section>
 
@@ -397,18 +440,17 @@ const MarksheetTemplate = ({ result, schoolInfo, examName, academicYear, waterma
                             </tr>
                         </thead>
                         <tbody>
-                            {subjects.map((sub, sIdx) => {
+                            {sortedSubjects.map((sub, sIdx) => {
                                 const sr = result.subjectResults.get(sub.name);
-                                if (!sr) return null; // Skip if subject has 0 full marks or no entry
-                                const isFail = sr.isPass === false;
+                                const isFail = sr?.isPass === false;
                                 return (
                                     <tr key={sIdx} className={cn("border-b border-black", isFail && "bg-red-50/50")}>
                                         <td className="border-r border-black p-1 text-center">{sIdx + 1}</td>
                                         <td className="border-r border-black p-1 pl-4 font-semibold">{sub.englishName}</td>
-                                        <td className="border-r border-black p-1 text-center font-black">{sr.fullMarks}</td>
-                                        <td className={cn("border-r border-black p-1 text-center font-bold", isFail ? "text-red-600" : "text-blue-900")}>{sr.marks ?? '-'}</td>
-                                        <td className={cn("border-r border-black p-1 text-center font-black", isFail ? "text-red-600" : "")}>{sr.grade ?? '-'}</td>
-                                        <td className={cn("p-1 text-center font-bold", isFail ? "text-red-600" : "")}>{sr.point !== undefined ? sr.point.toFixed(2) : '-'}</td>
+                                        <td className="border-r border-black p-1 text-center">{sr?.fullMarks ?? sub.fullMarks}</td>
+                                        <td className={cn("border-r border-black p-1 text-center font-bold", isFail ? "text-red-600" : "text-blue-900")}>{sr?.marks ?? '-'}</td>
+                                        <td className={cn("border-r border-black p-1 text-center font-black", isFail ? "text-red-600" : "")}>{sr?.grade ?? '-'}</td>
+                                        <td className={cn("p-1 text-center font-bold", isFail ? "text-red-600" : "")}>{sr?.point !== undefined ? sr.point.toFixed(2) : '-'}</td>
                                     </tr>
                                 );
                             })}

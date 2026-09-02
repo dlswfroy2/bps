@@ -72,17 +72,14 @@ export const saveClassResults = (db: Firestore, newResult: ClassResult) => {
 
   // Non-blocking setDoc for offline stability
   setDoc(docRef, dataToSave, { merge: true })
-    .catch(async (serverError: any) => {
-      if (serverError.code === 'permission-denied') {
-          const permissionError = new FirestorePermissionError({
-              path: docRef.path,
-              operation: 'write',
-              requestResourceData: dataToSave,
-          } satisfies SecurityRuleContext);
-          errorEmitter.emit('permission-error', permissionError);
-      } else {
-        console.error("Error saving results:", serverError);
-      }
+    .catch(async (serverError) => {
+      console.error("Error saving results:", serverError);
+      const permissionError = new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: dataToSave,
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
     });
     
   return Promise.resolve();
@@ -111,9 +108,8 @@ export const getResultsForClass = async (
                 path: docRef.path,
                 operation: 'get',
             }));
-        } else {
-          console.error("Error getting results by ID:", e);
         }
+        console.error("Error getting results by ID:", e);
         return undefined;
     }
 };
@@ -132,9 +128,8 @@ export const getAllResults = async (db: Firestore, academicYear: string, examNam
                 path: resultsCollection,
                 operation: 'list',
             }));
-        } else {
-          console.error("Error getting all results:", e);
         }
+        console.error("Error getting all results:", e);
         return [];
     }
 };
@@ -143,16 +138,13 @@ export const deleteClassResult = (db: Firestore, id: string) => {
     const docRef = doc(db, resultsCollection, id);
     // Non-blocking deleteDoc
     deleteDoc(docRef)
-    .catch(async (serverError: any) => {
-        if (serverError.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'delete',
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-          console.error("Error deleting result:", serverError);
-        }
+    .catch(async (serverError) => {
+        console.error("Error deleting result:", serverError);
+        const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'delete',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
     });
     return Promise.resolve();
 }

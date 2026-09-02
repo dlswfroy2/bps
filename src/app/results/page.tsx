@@ -19,10 +19,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { 
     Trash2, FileUp, Download, FilePen, BookOpen, AlertCircle, Trophy, Printer, Loader2, 
     FileSpreadsheet, CheckCircle2, Save, Star, ChevronRight, LayoutGrid, FileText, 
-    Search, Sparkles, Settings, ListTodo, List, XCircle, UserCheck, RefreshCw, Plus, AlertTriangle, Info, History
+    Search, Sparkles, Settings, ListTodo, List, XCircle, UserCheck, RefreshCcw, Plus, AlertTriangle, Info, History
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFirestore } from '@/firebase';
 import { collection, onSnapshot, query, where, orderBy, FirestoreError, getDocs, limit, doc, writeBatch, serverTimestamp, Timestamp, QueryDocumentSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -49,7 +50,7 @@ const BENGALI_MONTHS = [
     'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
 ];
 
-const classNamesMap: { [key: string]: string } = { '6': 'ষষ্ঠ', '7': '৭ম', '8': '৮ম', '9': '৯ম', '10': '১০ম' };
+const classNamesMap: { [key: string]: string } = { '6': 'ষষ্ঠ', '7': '৭ম', '8': '৮ম', '9': '৯ম', '10': 'দশম' };
 const groupNamesMap: { [key: string]: string } = { 'science': 'বিজ্ঞান', 'arts': 'মানবিক', 'commerce': 'ব্যবসায় শিক্ষা', 'all': 'সকল শাখা' };
 const groupMap: Record<string, string> = { 
     'science': 'science', 'বিজ্ঞান': 'science',
@@ -138,7 +139,17 @@ const MarkManagementTab = ({ allStudents }: { allStudents: Student[] }) => {
             return;
         }
         setIsLoadingStudents(true);
-        const filteredStudents = allStudents.filter(s => s.academicYear === selectedYear && s.className === className && (!showGroupSelector || !group || s.group === group)).sort((a,b) => (Number(a.roll) || 0) - (Number(b.roll) || 0));
+        const filteredStudents = allStudents.filter(s => {
+            const yearMatch = s.academicYear === selectedYear;
+            const classMatch = s.className === className;
+            if (!yearMatch || !classMatch) return false;
+            if (!showGroupSelector || !group) return true;
+            
+            const sGroupNorm = groupMap[(s.group || '').toLowerCase().trim()] || (s.group || '').toLowerCase().trim();
+            const filterGroupNorm = groupMap[group.toLowerCase().trim()] || group.toLowerCase().trim();
+            return sGroupNorm === filterGroupNorm;
+        }).sort((a,b) => (Number(a.roll) || 0) - (Number(b.roll) || 0));
+
         setStudentsForClass(filteredStudents);
         
         const effectiveGroup = parseInt(className) < 9 ? undefined : group;
@@ -236,7 +247,7 @@ const MarkManagementTab = ({ allStudents }: { allStudents: Student[] }) => {
                 setMarks(newMarks); toast({ title: "নম্বর লোড হয়েছে", description: `${count} জনের তথ্য পাওয়া গেছে।` });
             } catch (error: any) { toast({ variant: "destructive", title: "ত্রুটি", description: error.message }); }
         };
-        reader.readAsArrayBuffer(file);
+        reader.readAsDataURL(file);
     };
 
     const numberInputClass = "h-9 font-bold border-2 border-black focus:ring-primary shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
@@ -387,7 +398,15 @@ const SubjectReportTab = ({ allStudents, onPrintRequested }: { allStudents: Stud
             return;
         }
         const students = allStudents
-            .filter(s => s.academicYear === selectedYear && s.className === className && (!group || s.group === group))
+            .filter(s => {
+                const yearMatch = s.academicYear === selectedYear;
+                const classMatch = s.className === className;
+                if (!yearMatch || !classMatch) return false;
+                if (!group || group === 'all') return true;
+                const sGroupNorm = groupMap[(s.group || '').toLowerCase().trim()] || (s.group || '').toLowerCase().trim();
+                const filterGroupNorm = groupMap[group.toLowerCase().trim()] || group.toLowerCase().trim();
+                return sGroupNorm === filterGroupNorm;
+            })
             .sort((a, b) => a.roll - b.roll)
             .map(student => ({
                 student,
@@ -408,7 +427,15 @@ const SubjectReportTab = ({ allStudents, onPrintRequested }: { allStudents: Stud
     const reportStudents = useMemo(() => {
         if (!results) return [];
         return allStudents
-            .filter(s => s.academicYear === selectedYear && s.className === className && (parseInt(className) < 9 || !group || s.group === group))
+            .filter(s => {
+                const yearMatch = s.academicYear === selectedYear;
+                const classMatch = s.className === className;
+                if (!yearMatch || !classMatch) return false;
+                if (parseInt(className) < 9 || !group || group === 'all') return true;
+                const sGroupNorm = groupMap[(s.group || '').toLowerCase().trim()] || (s.group || '').toLowerCase().trim();
+                const filterGroupNorm = groupMap[group.toLowerCase().trim()] || group.toLowerCase().trim();
+                return sGroupNorm === filterGroupNorm;
+            })
             .sort((a, b) => a.roll - b.roll)
             .map(student => {
                 const marks = results.results.find(r => r.studentId === student.id);
@@ -547,7 +574,6 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
         const table = tableContainerRefs.current[key];
         if (!top || !table) return;
 
-        // Prevent feedback loop using a frame-based guard
         if (scrollingRef.current && scrollingRef.current !== source + key) return;
         
         scrollingRef.current = source + key;
@@ -562,17 +588,16 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
         });
     };
 
-    // Calculate a more precise table width based on column widths used in CSS
     const calculateTableWidth = (subs: SubjectType[]) => {
-        let width = 60 + 200 + 350; // Sticky columns: Roll (60) + Name (200) + End Summary (5 * 70 = 350)
+        let width = 60 + 200 + 350; 
         subs.forEach(s => {
             const isEng = s.name.includes('ইংরেজি');
             if (isEng) {
-                width += 144; // 3 columns (Obtained: 56, Grade: 40, Point: 48)
+                width += 144; 
             } else if (s.practical) {
-                width += 288; // 6 columns (Written: 48, MCQ: 48, Practical: 48, Obtained: 56, Grade: 40, Point: 48)
+                width += 288; 
             } else {
-                width += 240; // 5 columns (Written: 48, MCQ: 48, Obtained: 56, Grade: 40, Point: 48)
+                width += 240; 
             }
         });
         return width;
@@ -586,11 +611,21 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
         if (!examName || !className || !db || !user) { toast({ variant: 'destructive', title: 'তথ্য অসম্পূর্ণ' }); return; }
         setIsLoading(true);
         try {
-            const students = allStudents.filter(s => s.academicYear === selectedYear && s.className === className && (parseInt(className) < 9 || groupFilter === 'all' || (s.group || '').toLowerCase().trim() === groupFilter.toLowerCase().trim())).sort((a,b) => (Number(a.roll) || 0) - (Number(b.roll) || 0));
+            const students = allStudents.filter(s => {
+                const yearMatch = s.academicYear === selectedYear;
+                const classMatch = s.className === className;
+                if (!yearMatch || !classMatch) return false;
+                if (parseInt(className) < 9 || groupFilter === 'all') return true;
+                
+                const sGroupNorm = groupMap[(s.group || '').toLowerCase().trim()] || (s.group || '').toLowerCase().trim();
+                const filterGroupNorm = groupMap[groupFilter.toLowerCase().trim()] || groupFilter.toLowerCase().trim();
+                return sGroupNorm === filterGroupNorm;
+            }).sort((a,b) => (Number(a.roll) || 0) - (Number(b.roll) || 0));
+
             if (students.length === 0) { toast({ title: 'কোনো শিক্ষার্থী নেই' }); setProcessedResults([]); setIsLoading(false); return; }
             
-            const allResults = await getAllResults(db, selectedYear, examName).catch(() => []);
-            const classRes = allResults.filter(r => r.className === className);
+            const allRes = await getAllResults(db, selectedYear, examName).catch(() => []);
+            const classRes = allRes.filter(r => r.className === className);
             setClassResults(classRes);
             const subs = getSubjects(className, groupFilter === 'all' ? undefined : groupFilter).filter(s => s.isExamSubject !== false);
             setProcessedResults(processStudentResults(students, classRes, subs));
@@ -644,10 +679,19 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
         }
         
         const students = allStudents
-            .filter(s => s.academicYear === selectedYear && s.className === className)
+            .filter(s => {
+                const yearMatch = s.academicYear === selectedYear;
+                const classMatch = s.className === className;
+                if (!yearMatch || !classMatch) return false;
+                if (parseInt(className) < 9 || groupFilter === 'all') return true;
+                
+                const sGrp = groupMap[(s.group || '').toLowerCase().trim()] || (s.group || '').toLowerCase().trim();
+                const fGrp = groupMap[groupFilter.toLowerCase().trim()] || groupFilter.toLowerCase().trim();
+                return sGrp === fGrp;
+            })
             .sort((a, b) => (Number(a.roll) || 0) - (Number(b.roll) || 0));
         
-        const subjects = getSubjects(className).filter(s => s.isExamSubject !== false);
+        const subjects = getSubjects(className, groupFilter === 'all' ? undefined : groupFilter).filter(s => s.isExamSubject !== false);
         
         const headers = ['রোল', 'নাম', 'বিভাগ'];
         subjects.forEach(s => {
@@ -665,8 +709,21 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
             const classRes = allRes.filter(r => r.className === className);
             const sheetData = students.map(s => {
                 const row: any = { 'রোল': s.roll, 'নাম': s.studentNameBn, 'বিভাগ': s.group || 'সাধারণ' };
+                
+                const rawSGroup = (s.group || 'none').toLowerCase().trim();
+                const studentGroupNormalized = groupMap[rawSGroup] || rawSGroup;
+
                 subjects.forEach(sub => {
-                    const subRes = classRes.find(r => normalize(r.subject) === normalize(sub.name));
+                    const subRes = classRes.find(r => {
+                        const rGroupRaw = (r.group || 'none').toLowerCase().trim();
+                        const rGroupNorm = groupMap[rGroupRaw] || rGroupRaw;
+                        return normalize(r.subject) === normalize(sub.name) && (parseInt(className) < 9 || rGroupNorm === studentGroupNormalized);
+                    }) || classRes.find(r => {
+                        const rGroupRaw = (r.group || 'none').toLowerCase().trim();
+                        const rGroupNorm = groupMap[rGroupRaw] || rGroupRaw;
+                        return normalize(r.subject) === normalize(sub.name) && rGroupNorm === 'none';
+                    });
+
                     const marks = subRes?.results.find(mr => mr.studentId === s.id);
                     const isEng = sub.name.includes('ইংরেজি');
                     if (!isEng) {
@@ -695,8 +752,11 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
         const reader = new FileReader();
         reader.onload = async (evt) => {
             try {
-                const workbook = XLSX.read(evt.target?.result, { type: 'binary', cellDates: true });
-                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as any[];
+                const bstr = evt.target?.result;
+                const workbook = XLSX.read(bstr, { type: 'binary', cellDates: true });
+                const wsname = workbook.SheetNames[0];
+                const ws = workbook.Sheets[wsname];
+                const json = XLSX.utils.sheet_to_json(ws) as any[];
                 
                 if (json.length === 0) {
                     toast({ variant: 'destructive', title: 'ফাইলটি খালি' });
@@ -713,11 +773,25 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
 
                 for (const row of json) {
                     const roll = parseInt(String(row['রোল'] || row['roll'] || '0').replace(/[০-৯]/g, d => "0123456789"["০১২৩৪৫৬৭৮৯".indexOf(d)]), 10);
-                    const student = studentsInClass.find(s => s.roll === roll);
+                    
+                    const rowGroupRaw = String(row['বিভাগ'] || row['Group'] || row['group'] || '').toLowerCase().trim();
+                    const rowGroupNorm = groupMap[rowGroupRaw] || rowGroupRaw;
+
+                    const student = studentsInClass.find(s => {
+                        const rollMatch = s.roll === roll;
+                        if (!rollMatch) return false;
+                        if (parseInt(className) < 9) return true;
+                        
+                        if (!rowGroupNorm) return true;
+                        const sGroupRaw = (s.group || 'none').toLowerCase().trim();
+                        const sGroupNorm = groupMap[sGroupRaw] || sGroupRaw;
+                        return sGroupNorm === rowGroupNorm;
+                    });
+
                     if (!student) continue;
 
-                    const rawGroup = (student.group || 'none').toLowerCase().trim();
-                    let studentGroup = groupMap[rawGroup] || rawGroup;
+                    const studentGroupRaw = (student.group || 'none').toLowerCase().trim();
+                    let studentGroup = groupMap[studentGroupRaw] || studentGroupRaw;
                     if (parseInt(className) < 9) studentGroup = 'none';
 
                     subjects.forEach(sub => {
@@ -780,7 +854,7 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
                 handleViewResults();
             } catch (error) {
                 console.error(error);
-                toast({ variant: 'destructive', title: 'ত্রুটি', description: 'ফাইলটি প্রসেস করা সম্ভব হয়নি। ' + error });
+                toast({ variant: 'destructive', title: 'ত্রুটি', description: 'ফাইলটি প্রসেস করা সম্ভব হয়নি।' });
             } finally {
                 setIsBulkUploading(false);
                 if (bulkUploadRef.current) bulkUploadRef.current.value = '';
@@ -792,10 +866,15 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
     const groupedData = useMemo(() => {
         const groups: Record<string, StudentProcessedResult[]> = {};
         processedResults.forEach(res => {
-            const g = (parseInt(className) >= 9 && groupFilter !== 'all') ? (res.student.group || 'all') : 'all';
+            const g = (parseInt(className) >= 9 && groupFilter !== 'all') ? (groupMap[(res.student.group || 'all').toLowerCase().trim()] || res.student.group || 'all') : 'all';
             if (!groups[g]) groups[g] = [];
             groups[g].push(res);
         });
+        
+        Object.keys(groups).forEach(key => {
+            groups[key].sort((a, b) => (a.student.roll || 0) - (b.student.roll || 0));
+        });
+        
         return groups;
     }, [processedResults, className, groupFilter]);
 
@@ -848,7 +927,19 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
                 const results = groupedData[gk];
                 const subs = getSubjects(className, gk === 'all' ? undefined : gk).filter(s => {
                     if (!s.isExamSubject) return false;
-                    const matchingRecord = classResults.find(r => normalize(r.subject) === normalize(s.name));
+                    const matchingRecord = classResults.find(r => {
+                        const nameMatch = normalize(r.subject) === normalize(s.name);
+                        if (!nameMatch) return false;
+                        
+                        if (parseInt(className) >= 9) {
+                            const rGroupRaw = (r.group || 'none').toLowerCase().trim();
+                            const rGroupNorm = groupMap[rGroupRaw] || rGroupRaw;
+                            const gkNorm = groupMap[gk.toLowerCase().trim()] || gk.toLowerCase().trim();
+                            
+                            return rGroupNorm === 'none' || rGroupNorm === gkNorm || gk === 'all';
+                        }
+                        return true;
+                    });
                     const effectiveFullMarks = matchingRecord?.fullMarks ?? s.fullMarks;
                     return effectiveFullMarks > 0;
                 });
@@ -862,7 +953,6 @@ const ResultSheetTab = ({ allStudents, onPrint }: { allStudents: Student[], onPr
                             <Badge variant="secondary" className="font-black px-3 text-xs">মোট: {toBengaliNumber(results.length)} জন</Badge>
                         </div>
                         
-                        {/* Top Scroll Sync Bar - Optimized with guard and matching width */}
                         <div 
                             ref={el => { topScrollRefs.current[gk] = el; }}
                             onScroll={() => handleScrollSync(gk, 'top')}
@@ -1227,7 +1317,15 @@ const MeritListTab = ({ allStudents }: { allStudents: Student[] }) => {
         if (!examName || !className || !db || !user) return;
         setIsLoading(true);
         try {
-            const students = allStudents.filter(s => s.academicYear === selectedYear && s.className === className && (parseInt(className) < 9 || groupFilter === 'all' || (s.group || '').toLowerCase().trim() === groupFilter.toLowerCase().trim()));
+            const students = allStudents.filter(s => {
+                const yearMatch = s.academicYear === selectedYear;
+                const classMatch = s.className === className;
+                if (!yearMatch || !classMatch) return false;
+                if (parseInt(className) < 9 || groupFilter === 'all') return true;
+                const sGroupNorm = groupMap[(s.group || '').toLowerCase().trim()] || (s.group || '').toLowerCase().trim();
+                const filterGroupNorm = groupMap[groupFilter.toLowerCase().trim()] || groupFilter.toLowerCase().trim();
+                return sGroupNorm === filterGroupNorm;
+            });
             const allRes = await getAllResults(db, selectedYear, examName).catch(() => []);
             const classRes = allRes.filter(r => r.className === className);
             const subs = getSubjects(className, groupFilter === 'all' ? undefined : groupFilter).filter(s => s.isExamSubject !== false);
@@ -1311,7 +1409,6 @@ const PromotionTab = ({ allStudents }: { allStudents: Student[] }) => {
     const [promotionMode, setPromotionType] = useState<'pass' | 'special'>('pass');
     const [projectedPromotions, setProjectedPromotions] = useState<any[]>([]);
 
-    // History Logic States
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [historyLoading, setHistoryHistoryLoading] = useState(false);
     const [promotedHistory, setPromotedHistory] = useState<any[]>([]);
@@ -1541,12 +1638,11 @@ const PromotionTab = ({ allStudents }: { allStudents: Student[] }) => {
                         <DialogTitle className="text-2xl font-black flex items-center gap-2"><Sparkles className="h-6 w-6" /> প্রমোশন কনফার্মেশন ও প্রিভিউ</DialogTitle>
                         <DialogDescription className="text-white/80 font-bold">{classNamesMap[sourceClass]} থেকে {classNamesMap[targetClass]} শ্রেণিতে উন্নীতকরণের তালিকা</DialogDescription>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto p-6 bg-slate-50"><Card className="border-2 border-black/5 bg-white shadow-inner rounded-xl"><div className="grid grid-cols-4 p-3 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-center"><span>শিক্ষার্থীর নাম (আইডি)</span><span>বর্তমান রোল</span><span>স্ট্যাটাস</span><span className="text-primary">নতুন রোল</span></div><div className="divide-y-2 divide-slate-50">{projectedPromotions.map((item) => (<div key={item.id} className="grid grid-cols-4 p-4 items-center text-center hover:bg-primary/5 transition-colors"><div className="flex flex-col items-center"><span className="font-black text-slate-800 text-sm truncate px-1">{item.name}</span><span className="text-[10px] font-bold text-muted-foreground">ID: {toBengaliNumber(item.generatedId || '')}</span></div><span className="font-bold text-slate-500">{toBengaliNumber(item.currentRoll)}</span><span><Badge className={item.resData.isPass ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}>{item.resData.isPass ? 'কৃতকার্য' : 'বিশেষ পাশ'}</Badge></span><div className="flex justify-center"><Input type="number" value={item.projectedRoll} onChange={(e) => updateProjectedRoll(item.id, e.target.value)} className="w-20 h-9 text-center font-black border-2 border-primary/20 bg-white" /></div></div>))}</div></Card></div>
+                    <div className="flex-1 overflow-y-auto p-6 bg-slate-50"><Card className="border-2 border-black/5 bg-white shadow-inner rounded-xl"><div className="grid grid-cols-4 p-3 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-center"><span>শিক্ষার্থীর নাম (আইডি)</span><span>বর্তমান রোল</span><span>স্ট্যাটাস</span><span className="text-primary">নতুন রোল</span></div><div className="divide-y-2 divide-slate-50">{projectedPromotions.map((item) => (<div key={item.id} className="grid grid-cols-4 p-4 items-center text-center hover:bg-primary/5 transition-colors"><div className="flex flex-col items-center"><span className="font-black text-slate-800 text-sm truncate px-1">{item.name}</span><span className="text-[10px] font-bold text-muted-foreground">ID: {toBengaliNumber(item.generatedId || '')}</span></div><span className="font-bold text-slate-500">{toBengaliNumber(item.currentRoll)}</span><span><Badge className={item.isPass ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}>{item.isPass ? 'কৃতকার্য' : 'বিশেষ পাশ'}</Badge></span><div className="flex justify-center"><Input type="number" value={item.projectedRoll} onChange={(e) => updateProjectedRoll(item.id, e.target.value)} className="w-20 h-9 text-center font-black border-2 border-primary/20 bg-white" /></div></div>))}</div></Card></div>
                     <DialogFooter className="p-6 bg-white border-t flex gap-3"><Button variant="outline" onClick={() => setIsPreviewOpen(false)} className="flex-1 font-bold h-12">বাতিল</Button><Button onClick={handleConfirmPromotion} disabled={isPromoting} className="flex-1 min-w-[200px] h-12 text-lg font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl">{isPromoting ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}প্রমোশন নিশ্চিত করুন</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Promotion History Dialog */}
             <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
                 <DialogContent className="max-w-4xl h-[90vh] flex flex-col font-kalpurush p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
                     <DialogHeader className="p-6 bg-slate-800 text-white shrink-0">
@@ -2114,7 +2210,19 @@ export default function ResultsPage() {
                         const allSubs = getSubjects(className, groupKey === 'all' ? undefined : groupKey);
                         const subjects = allSubs.filter(s => {
                             if (!s.isExamSubject) return false;
-                            const matchingRecord = classResults.find((r: any) => normalize(r.subject) === normalize(s.name));
+                            const matchingRecord = classResults.find((r: any) => {
+                                const nameMatch = normalize(r.subject) === normalize(s.name);
+                                if (!nameMatch) return false;
+                                
+                                if (parseInt(className) >= 9) {
+                                    const rGroupRaw = (r.group || 'none').toLowerCase().trim();
+                                    const rGroupNorm = groupMap[rGroupRaw] || rGroupRaw;
+                                    const groupKeyNorm = groupMap[groupKey.toLowerCase().trim()] || groupKey.toLowerCase().trim();
+                                    
+                                    return rGroupNorm === 'none' || rGroupNorm === groupKeyNorm || groupKey === 'all';
+                                }
+                                return true;
+                            });
                             const effectiveFullMarks = matchingRecord?.fullMarks ?? s.fullMarks;
                             return effectiveFullMarks > 0;
                         });
@@ -2147,7 +2255,7 @@ export default function ResultsPage() {
                                                                 {s.practical && <th className="border border-black font-bold p-0.5 text-[8px]">ব্যাব:</th>}
                                                             </>
                                                         )}
-                                                        <th className="border border-black font-black bg-blue-100 p-0.5 text-[8px]">মোট</th>
+                                                        <th className="border border-black font-black bg-blue-50 p-0.5 text-[8px]">মোট</th>
                                                         <th className="border border-black font-bold p-0.5 text-[8px]">গ্রেড</th>
                                                         <th className="border border-black font-bold p-0.5 text-[8px]">পয়েন্ট</th>
                                                     </React.Fragment>
@@ -2247,7 +2355,7 @@ export default function ResultsPage() {
                                                     const match = specialPrintData.allSpecialResults.find((r: any) => {
                                                         const normalizedSearch = normalize(sub.name);
                                                         const normalizedRecord = normalize(r.subject);
-                                                        if (sub.isCombined) return sub.subList.some((innerSub: string) => normalize(innerSub) === normalizedRecord) && r.examType === type;
+                                                        if (sub.isCombined) return sub.subList.some((innerSub: string) => normalizedRecord === normalizedRecord) && r.examType === type;
                                                         return normalizedRecord === normalizedSearch && r.examType === type;
                                                     });
                                                     const marks = match?.results.find((res: any) => res.studentId === student.id)?.marks;
@@ -2272,4 +2380,3 @@ export default function ResultsPage() {
         </div>
     );
 }
-

@@ -90,17 +90,15 @@ export function processStudentResults(
                 const hmNormalized = normalize('উচ্চতর গণিত');
                 const agriNormalized = normalize('কৃষি শিক্ষা');
                 
-                if (optionalSubjectNameNormalized === hmNormalized && currentSubNameNormalized === agriNormalized) {
-                    return false;
-                }
-                if (optionalSubjectNameNormalized === agriNormalized && currentSubNameNormalized === hmNormalized) {
-                    return false;
-                }
-                if ((currentSubNameNormalized === hmNormalized || currentSubNameNormalized === agriNormalized) && currentSubNameNormalized !== optionalSubjectNameNormalized) {
-                    return false;
+                if (currentSubNameNormalized === hmNormalized || currentSubNameNormalized === agriNormalized) {
+                    if (optionalSubjectNameNormalized) {
+                        return currentSubNameNormalized === optionalSubjectNameNormalized;
+                    } else {
+                        // Default fallback
+                        return currentSubNameNormalized === hmNormalized;
+                    }
                 }
             }
-            
             return true;
         });
 
@@ -111,40 +109,70 @@ export function processStudentResults(
         subjectsForStudent.forEach(subjectInfo => {
             const normalizedSubjectName = normalize(subjectInfo.name);
             
-            // CRITICAL: Find result record for this specific subject to get dynamic fullMarks
-            const classResult = resultsBySubject.find(r => 
-                normalize(r.subject) === normalizedSubjectName && 
-                r.className === student.className &&
-                (!r.group || r.group === 'none' || groupMap[r.group.toLowerCase()] === studentGroupNormalized || studentClassNum < 9)
-            );
+            const classResult = resultsBySubject.find(r => {
+                const nameMatch = normalize(r.subject) === normalizedSubjectName;
+                if (!nameMatch) return false;
+
+                const classMatch = String(r.className) === String(student.className);
+                if (!classMatch) return false;
+
+                if (studentClassNum >= 9) {
+                    const rGroupRaw = (r.group || 'none').toLowerCase().trim();
+                    const rGroupNorm = groupMap[rGroupRaw] || rGroupRaw;
+                    return rGroupNorm === 'none' || rGroupNorm === studentGroupNormalized;
+                }
+                return true;
+            });
 
             const studentResult = classResult?.results.find(r => r.studentId === student.id);
-            // Use database fullMarks if it exists, otherwise fall back to system default
-            const effectiveFullMarks = (classResult && typeof classResult.fullMarks === 'number') ? classResult.fullMarks : subjectInfo.fullMarks;
-
-            // Skip subjects with 0 full marks (like Physical Education in some classes)
-            if (effectiveFullMarks <= 0) return;
+            const fullMarks = classResult?.fullMarks || subjectInfo.fullMarks;
 
             const written = studentResult?.written;
             const mcq = studentResult?.mcq;
             const practical = studentResult?.practical;
             const obtainedMarks = (written || 0) + (mcq || 0) + (practical || 0);
             
-            const passMark = Math.ceil(effectiveFullMarks * 0.33);
-            const isPassSubject = obtainedMarks >= passMark;
+            let isPassSubject = true;
+            const overallPassMark = Math.ceil(fullMarks * 0.33);
+
+            if (obtainedMarks < overallPassMark) {
+                isPassSubject = false;
+            } else {
+                const isEnglish = normalizedSubjectName === normalize('ইংরেজি প্রথম') || normalizedSubjectName === normalize('ইংরেজি দ্বিতীয়');
+                const isIct25 = (normalizedSubjectName.includes('তথ্য ও যোগাযোগ') || normalizedSubjectName.includes('আইসিটি')) && fullMarks === 25;
+
+                if (!isEnglish) {
+                    if (isIct25) {
+                        if (mcq !== undefined && mcq < 8) isPassSubject = false;
+                    } else if (fullMarks === 100) {
+                        if (subjectInfo.practical) {
+                            if (written !== undefined && written < 17) isPassSubject = false;
+                            if (mcq !== undefined && mcq < 8) isPassSubject = false;
+                            if (practical !== undefined && practical < 8) isPassSubject = false;
+                        } else {
+                            if (written !== undefined && written < 23) isPassSubject = false;
+                            if (mcq !== undefined && mcq < 10) isPassSubject = false;
+                        }
+                    } 
+                    else if (fullMarks === 50) {
+                        if (written !== undefined && written < 12) isPassSubject = false;
+                        if (mcq !== undefined && mcq < 5) isPassSubject = false;
+                    }
+                }
+            }
             
-            const percentageForGrade = (obtainedMarks / effectiveFullMarks) * 100;
+            const percentageForGrade = (obtainedMarks / fullMarks) * 100;
             const { grade, point } = getGradePoint(percentageForGrade);
             
             totalMarks += obtainedMarks;
-            totalPossibleMarks += effectiveFullMarks;
+            totalPossibleMarks += fullMarks;
             
             subjectResultsMap.set(subjectInfo.name, {
                 written,
                 mcq,
                 practical,
                 marks: obtainedMarks,
-                fullMarks: effectiveFullMarks,
+                fullMarks: fullMarks,
                 grade: isPassSubject ? grade : 'F',
                 point: isPassSubject ? point : 0,
                 isPass: isPassSubject
@@ -158,15 +186,13 @@ export function processStudentResults(
 
         subjectsForStudent.forEach(subjectInfo => {
             const result = subjectResultsMap.get(subjectInfo.name);
-            if (!result) return; // Skip subjects with 0 fullMarks that were not added to map
-
             const isOptional = normalize(subjectInfo.name) === optionalSubjectNameNormalized;
 
             if (isOptional) {
                 if (result && result.isPass && result.point > 2.0) {
                     bonusPoints = result.point - 2.0;
                 }
-            } else {
+            } else if (subjectInfo.fullMarks > 0) {
                 compulsorySubjectsCount++;
                 if (!result || !result.isPass) {
                     failedInCompulsoryCount++;

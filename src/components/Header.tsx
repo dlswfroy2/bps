@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -29,7 +30,8 @@ import {
   Wifi,
   WifiOff,
   ArrowLeft,
-  Award
+  Award,
+  FolderSearch
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -105,6 +107,7 @@ const mainMenuItems = [
   { id: 'accounts', label: 'হিসাব শাখা', icon: Banknote, href: '/accounts', permission: 'view:accounts', color: 'bg-teal-50 text-teal-700 border-teal-100' },
   { id: 'staff', label: 'শিক্ষক ও কর্মচারী', icon: Users2, href: '/staff', permission: 'view:staff', color: 'bg-orange-50 text-orange-700 border-orange-100' },
   { id: 'documents', label: 'ডকুমেন্ট', icon: FileText, href: '/documents', permission: 'manage:documents', color: 'bg-slate-50 text-slate-700 border-slate-100' },
+  { id: 'archive', label: 'নথিপত্র (আর্কাইভ)', icon: FolderSearch, href: '/documents/archive', permission: 'manage:archive', color: 'bg-rose-50 text-rose-700 border-rose-100' },
   { id: 'routines', label: 'রুটিন', icon: CalendarClock, href: '/routines', permission: 'view:routines', color: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100' },
   { id: 'settings', label: 'সেটিং', icon: Settings, href: '/settings', permission: 'manage:settings', color: 'bg-gray-50 text-gray-700 border-gray-100' },
 ];
@@ -281,9 +284,9 @@ export function Header() {
                       <SheetTitle className="sr-only">Main Menu</SheetTitle>
                       <SheetDescription className="sr-only">Navigation and settings</SheetDescription>
                     <Link href="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
-                      {isSchoolInfoLoading ? <Skeleton className="h-6 w-6 rounded-md" /> : (schoolInfo.logoUrl && (
+                      {isSchoolInfoLoading ? <Skeleton className="h-6 w-6 rounded-full" /> : (schoolInfo.logoUrl && (
                         <div className="relative h-6 w-6">
-                          <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain" />
+                          <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain" />
                         </div>
                       ))}
                       <span className="font-black text-slate-900 truncate text-[10px]">{isSchoolInfoLoading ? <Skeleton className="h-4 w-20" /> : schoolInfo.name}</span>
@@ -362,12 +365,12 @@ export function Header() {
 
         <Link href="/" className="flex items-center gap-2 sm:gap-4 md:gap-6">
             {!isSchoolInfoLoading && schoolInfo.logoUrl && (
-              <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0 bg-white p-1 shadow-md border-2 border-white/20 rounded-full">
-                <Image src={schoolInfo.logoUrl} alt="Logo" fill className="object-contain rounded-full" />
+              <div className="relative h-10 w-10 md:h-[70px] md:w-[70px] shrink-0">
+                <Image src={schoolInfo.logoUrl} alt="Logo" fill className="rounded-full object-contain" />
               </div>
             )}
             <div className="flex flex-col items-center md:items-start">
-              <div className="text-xl sm:text-2xl md:text-[40px] font-black whitespace-nowrap tracking-tight text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)] leading-tight">
+              <div className="text-xl sm:text-2xl md:text-[40px] font-black whitespace-nowrap tracking-tight md:[text-shadow:1px_1px_0px_#000,2px_2px_4px_rgba(0,0,0,0.5)] leading-tight">
                 {isSchoolInfoLoading ? <Skeleton className="h-8 w-40 md:h-12 md:w-80" /> : schoolInfo.name}
               </div>
               <div className="flex items-center gap-2 mt-0.5">

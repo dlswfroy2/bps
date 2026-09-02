@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,18 +8,18 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { 
     ArrowRight, FilePlus, IdCard, FileText, FileBadge, Award, Grid3X3, Contact, 
-    ChevronRight, LayoutGrid, Info, ShieldCheck
+    ChevronRight, LayoutGrid, Info, ShieldCheck, FolderSearch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const DOCUMENT_TOOLS = [
   { 
-    id: 'marksheet', 
-    label: 'মার্কশিট (Marksheet)', 
-    icon: FileBadge, 
-    href: '/documents/marksheet', 
-    color: 'text-violet-600 bg-violet-50', 
-    desc: 'শিক্ষার্থীদের বার্ষিক বা সাময়িক পরীক্ষার বিস্তারিত ফলাফল বিবরণী বা মার্কশিট প্রিন্ট করুন।' 
+    id: 'archive', 
+    label: 'ডিজিটাল আর্কাইভ (নথিপত্র)', 
+    icon: FolderSearch, 
+    href: '/documents/archive', 
+    color: 'text-rose-600 bg-rose-50', 
+    desc: 'বিদ্যালয়ের রেজুলেশন খাতা, রেজাল্ট শিট বা প্রয়োজনীয় নোটিশ ডিজিটাল ফরমেটে আপলোড করে আজীবনের জন্য সংরক্ষণ করুন।' 
   },
   { 
     id: 'id-card', 
@@ -33,8 +34,16 @@ const DOCUMENT_TOOLS = [
     label: 'প্রবেশ পত্র', 
     icon: IdCard, 
     href: '/documents/admit-card', 
-    color: 'text-rose-600 bg-rose-50', 
+    color: 'text-amber-600 bg-amber-50', 
     desc: 'পরীক্ষার জন্য ব্যক্তিগত বা শ্রেণিভিত্তিক ডিজিটাল প্রবেশপত্র লাইভ প্রিভিউ দেখে প্রিন্ট করুন।' 
+  },
+  { 
+    id: 'marksheet', 
+    label: 'মার্কশিট (Marksheet)', 
+    icon: FileBadge, 
+    href: '/documents/marksheet', 
+    color: 'text-violet-600 bg-violet-50', 
+    desc: 'শিক্ষার্থীদের জন্য প্রফেশনাল একাডেমিক মার্কশিট বা ফলাফল বিবরণী তৈরি ও প্রিন্ট করুন।' 
   },
   { 
     id: 'seat-plan', 
@@ -46,7 +55,7 @@ const DOCUMENT_TOOLS = [
   },
   { 
     id: 'testimonial', 
-    label: 'প্রত্যয়ন পত্র', 
+    label: 'प्रत्यয়ন পত্র', 
     icon: FileBadge, 
     href: '/documents/testimonial', 
     color: 'text-emerald-600 bg-emerald-50', 

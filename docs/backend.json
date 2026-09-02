@@ -140,6 +140,21 @@
         "academicYear": { "type": "string" }
       },
       "required": ["registrationNo", "rollNo", "studentName", "examType", "academicYear"]
+    },
+    "archivedDocument": {
+      "title": "Archived Document",
+      "description": "Official documents stored as Base64 strings in Firestore.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "fileData": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "fileName": { "type": "string" },
+        "uploaderName": { "type": "string" },
+        "uploaderUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "fileData", "mimeType", "fileName"]
     }
   },
   "auth": {
@@ -173,6 +188,10 @@
     "/publicExamRecords/{id}": {
       "schema": { "$ref": "#/entities/publicExamRecord" },
       "description": "Stores public exam performance records (SSC, JSC, Scholarship)."
+    },
+    "/archivedDocuments/{id}": {
+      "schema": { "$ref": "#/entities/archivedDocument" },
+      "description": "Stores digital archive documents as Base64 text."
     }
   }
 }
